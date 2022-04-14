@@ -15,11 +15,16 @@ public class CameraMoverEditor : Editor {
     public override void OnInspectorGUI() {
         base.OnInspectorGUI();
 
-        Camera cam = Camera.current;
+        if (!Application.isPlaying)
+            return;
+
+        Camera cam = Camera.current == null ? Camera.main : Camera.current;
         if (cam == null) {
-            Debug.LogWarning("Null camera");
+            //Debug.LogWarning("Null camera");
             return;
         }
+
+        mover.positions ??= new List<CameraMover.Position>();
 
         foreach (CameraMover.Position pos in mover.positions) {
             if (GUILayout.Button("Go to " + pos.position)) {

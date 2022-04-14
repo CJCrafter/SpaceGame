@@ -13,7 +13,8 @@ public class Planet : MonoBehaviour {
     private MeshFilter[] meshes;
     private Chunk[] faces;
 
-    // Editor toggles todo init?
+    // Settings for planets are separated into their own little sections
+    // so we can collapse them in the editor to help keep things organized
     public TerrainHandler terrain;
     public BiomeHandler biomes;
     public AtmosphereHandler atmosphere;
@@ -38,7 +39,13 @@ public class Planet : MonoBehaviour {
         // GameObjects over and over.
         if (meshes == null || meshes.Length != total || faces == null) {
             for (int i = transform.childCount - 1; i >= 0; i--) {
-                DestroyImmediate(transform.GetChild(i).gameObject);
+                GameObject obj = transform.GetChild(i).gameObject;
+                
+                // Before we destroy the sub-mesh, we should check to make sure
+                // that we are actually destroying the MESH and not, for example,
+                // a spectating camera.
+                if (obj.GetComponent<MeshRenderer>() != null)
+                    DestroyImmediate(obj);
             }
 
             meshes = new MeshFilter[total];

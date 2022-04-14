@@ -13,11 +13,11 @@ public class CameraMover : MonoBehaviour
     [Range(0f, 10f)]
     public float dragSpeed = 2f;
 
-    [HideInInspector]
+    [HideInInspector, SerializeField]
     public List<Position> positions;
     private Vector3 drag;
 
-    private void Update() {
+    private void Update0() {
 
         if (Input.GetMouseButtonDown(1)) {
             drag = Input.mousePosition;
