@@ -24,14 +24,14 @@ Shader "Hidden/Atmosphere"
 					float4 uv : TEXCOORD0;
 			};
 
-			struct v2f {
+			struct Interpolator {
 					float4 pos : SV_POSITION;
 					float2 uv : TEXCOORD0;
 					float3 viewVector : TEXCOORD1;
 			};
 
-			v2f vert(appdata v) {
-					v2f output;
+			Interpolator vert(appdata v) {
+					Interpolator output;
 					output.pos = UnityObjectToClipPos(v.vertex);
 					output.uv = v.uv;
 					// Camera space matches OpenGL convention where cam forward is -z. In unity forward is positive z.
@@ -160,7 +160,7 @@ Shader "Hidden/Atmosphere"
 			}
 
 
-			float4 frag(v2f i) : SV_Target
+			float4 frag(Interpolator i) : SV_Target
 			{
 				float4 originalCol = tex2D(_MainTex, i.uv);
 				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);

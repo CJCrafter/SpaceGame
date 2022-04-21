@@ -44,7 +44,7 @@
 				float2 texcoord0 : TEXCOORD0;
 			};
 
-			struct v2f
+			struct Interpolator
 			{
 				float4 vertex    : SV_POSITION;
 				float2 uv        : TEXCOORD0;
@@ -73,7 +73,7 @@
 				return DITHER_THRESHOLDS[index];
 			}
 
-			void Vert(a2v i, out v2f o)
+			void Vert(a2v i, out Interpolator o)
 			{
 				o.vertex    = UnityObjectToClipPos(i.vertex);
 				o.uv        = TRANSFORM_TEX(i.texcoord0, _MainTex);
@@ -83,7 +83,7 @@
 				o.color     = i.color * _Color;
 			}
 
-			void Frag(v2f i, out f2g o)
+			void Frag(Interpolator i, out f2g o)
 			{
 				float ang = abs(dot(normalize(i.direction), normalize(i.normal)));
 				float rim = _Shift - pow(saturate(1.0f - ang), _Rim);

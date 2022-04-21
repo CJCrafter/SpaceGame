@@ -37,7 +37,7 @@
 				float2 texcoord0 : TEXCOORD0;
 			};
 
-			struct v2f
+			struct Interpolator
 			{
 				float4 vertex    : SV_POSITION;
 				float2 uv        : TEXCOORD0;
@@ -51,7 +51,7 @@
 				float4 color : SV_TARGET;
 			};
 
-			void Vert(a2v i, out v2f o)
+			void Vert(a2v i, out Interpolator o)
 			{
 				o.vertex    = UnityObjectToClipPos(i.vertex);
 				o.uv        = TRANSFORM_TEX(i.texcoord0, _MainTex);
@@ -60,7 +60,7 @@
 				o.color     = i.color * _Color;
 			}
 
-			void Frag(v2f i, out f2g o)
+			void Frag(Interpolator i, out f2g o)
 			{
 				o.color = tex2D(_MainTex, i.uv) * i.color;
 			}

@@ -29,7 +29,7 @@
 				float2 uv     : TEXCOORD0;
 			};
 
-			struct v2f
+			struct Interpolator
 			{
 				float2 uv     : TEXCOORD0;
 				float4 vertex : SV_POSITION;
@@ -40,13 +40,13 @@
 				float4 color : SV_TARGET;
 			};
 
-			void Vert(a2v i, out v2f o)
+			void Vert(a2v i, out Interpolator o)
 			{
 				o.vertex = UnityObjectToClipPos(i.vertex);
 				o.uv     = i.uv;
 			}
 
-			void Frag(v2f i, out f2g o)
+			void Frag(Interpolator i, out f2g o)
 			{
 				float offset = tex2D(_OffsetTex, i.uv).w * 6.2832f + _Age;
 				float time   = sin(offset) * 0.5f + 0.5f;

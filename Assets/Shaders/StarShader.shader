@@ -30,6 +30,8 @@ Shader "Custom/StarShader" {
 
             //float3 _Emission;   
             sampler2D _Gradient;
+
+            
     
             Interpolator vert(Vertex v) {
 

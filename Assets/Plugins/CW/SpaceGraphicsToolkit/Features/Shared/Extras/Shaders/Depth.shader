@@ -30,7 +30,7 @@
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
-			struct v2f
+			struct Interpolator
 			{
 				float4 vertex : SV_POSITION;
 
@@ -42,16 +42,16 @@
 				float4 color : SV_TARGET;
 			};
 
-			void Vert(a2v i, out v2f o)
+			void Vert(a2v i, out Interpolator o)
 			{
 				UNITY_SETUP_INSTANCE_ID(i);
-				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_INITIALIZE_OUTPUT(Interpolator, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 				o.vertex = UnityObjectToClipPos(i.vertex);
 			}
 
-			void Frag(v2f i, out f2g o)
+			void Frag(Interpolator i, out f2g o)
 			{
 				o.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 			}
