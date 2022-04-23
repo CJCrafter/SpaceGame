@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee156d31e711d854ebde75fd391fbb43, type: 3}
   m_Name: Planet
   m_EditorClassIdentifier: 
-  radius: 100
+  radius: 221.9
   layers:
   - hide: 0
     useMask: 0

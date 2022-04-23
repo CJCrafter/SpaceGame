@@ -1,36 +1,46 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(GravityObject))]
 public class BlackHole : MonoBehaviour {
     
-    public float singularityRadius = 100f;
     public float lensingRadius = 200f;
     public float mass = 10;
-    public float step = 5f;
-    public int maxSteps = 1000;
-    public Vector3 accretionDisk;
-    public Vector2 accretionDiskMinMax;
-
+    [Min(0)] public float step = 5f;
+    [Min(0)] public int maxSteps = 1000;
+    [Min(0)] public float accretionWidth;
+    [Range(0, 1)] public float accretionMin;
+    [Range(0, 1)] public float accretionMax;
+    public float accretionSpin;
+    public Texture accretionTexture;
+    public Vector3 accretionDiskBrightness;
+    
     public bool updateGravity;
     public bool debug;
     [ConditionalHide("debug")]
     public int x;
     [ConditionalHide("debug")] 
     public int y;
+
+    private ComputeBuffer buffer;
     
     // * ----- MATERIAL PROPERTIES ----- * //
+    private Material material;
     private static readonly int Center = Shader.PropertyToID("_center");
     private static readonly int SingularityRadius = Shader.PropertyToID("_singularityRadius");
     private static readonly int LensingRadius = Shader.PropertyToID("_lensingRadius");
     private static readonly int Gravity = Shader.PropertyToID("_mass");
     private static readonly int Step = Shader.PropertyToID("_step");
     private static readonly int MaxSteps = Shader.PropertyToID("_maxSteps");
-    private static readonly int BoxDimensions = Shader.PropertyToID("_boxDimensions");
-    private static readonly int AccretionDiskMinMax = Shader.PropertyToID("_accretionDiskMinMax");
+    private static readonly int DiskWidth = Shader.PropertyToID("_diskWidth");
+    private static readonly int DiskMin = Shader.PropertyToID("_diskInner");
+    private static readonly int DiskMax = Shader.PropertyToID("_diskOuter");
+    private static readonly int AccretionDiskBrightness = Shader.PropertyToID("_accretionDiskBrightness");
+    private static readonly int DiskSpin = Shader.PropertyToID("_diskSpin");
+    private static readonly int DiskTexture = Shader.PropertyToID("_accretionDiskTexture");
+    private static readonly int Planets = Shader.PropertyToID("_planets");
+    private static readonly int PlanetCount = Shader.PropertyToID("_planetCount");
 
-    private Material material;
 
     private void Start() {
         Stuff();
@@ -39,6 +49,14 @@ public class BlackHole : MonoBehaviour {
     private void OnValidate() {
         if (updateGravity) {
             
+            // Einstein's equation for calculating the change in the angle of
+            // a light vector GIVEN mass/distance. Solve for r. 
+            // angle = (4mG) / (r * c^2)
+            // r = (4mG) / (angle * c^2)
+            const float G = Universe.gravitationalConstant;
+            const float C = 300_000_000f;
+            lensingRadius = 4f * mass * G / (1f * C * C);
+            transform.localScale = new Vector3(lensingRadius, lensingRadius, lensingRadius);
         }
         
         Stuff();
@@ -55,14 +73,14 @@ public class BlackHole : MonoBehaviour {
             Camera cam = Camera.main;
             Vector3 center = transform.position;
             
-            Sphere singularitySphere = new Sphere(center, singularityRadius);
+            //Sphere singularitySphere = new Sphere(center, singularityRadius);
             Sphere lensingSphere = new Sphere(center, lensingRadius);
-            Box accretionDisk = new Box(center - this.accretionDisk, center + this.accretionDisk);
+            //Box accretionDisk = new Box(center - this.accretionDisk, center + this.accretionDisk);
             
             Ray ray = new Ray(cam.transform.position, (center + new Vector3(x, y) - cam.transform.position).normalized);
 
             float lenseDistance = lensingRadius * lensingRadius;
-            float singularityDistance = singularityRadius * singularityRadius;
+            //float singularityDistance = singularityRadius * singularityRadius;
                 
             int i = 0;
             TraceResult result = lensingSphere.Collides(ray);
@@ -84,10 +102,10 @@ public class BlackHole : MonoBehaviour {
                 ray.direction = (ray.direction + between * step).normalized;
                 ray.origin += ray.direction * step;
 
-                if (accretionDisk.Collides(ray, step).collides) {
-                    Debug.DrawLine(beforeChanges, ray.origin, new Color(1f, 0.5f, 0f));
-                    return;
-                }
+                //if (accretionDisk.Collides(ray, step).collides) {
+                //    Debug.DrawLine(beforeChanges, ray.origin, new Color(1f, 0.5f, 0f));
+                //    return;
+                //}
                 
                 Debug.DrawLine(beforeChanges, ray.origin, i % 2 == 0 ? Color.cyan : Color.yellow);
 
@@ -116,13 +134,45 @@ public class BlackHole : MonoBehaviour {
         }
 
         material.SetVector(Center, transform.position);
-        material.SetFloat(SingularityRadius, singularityRadius);
+        material.SetFloat(SingularityRadius, 0.1f);
         material.SetFloat(LensingRadius, lensingRadius);
         material.SetFloat(Gravity, mass);
         material.SetFloat(Step, step);
         material.SetInt(MaxSteps, maxSteps);
-        material.SetVector(BoxDimensions, accretionDisk);
-        material.SetVector(AccretionDiskMinMax, accretionDiskMinMax);
+        material.SetFloat(DiskWidth, accretionWidth);
+        material.SetFloat(DiskMin, accretionMin);
+        material.SetFloat(DiskMax, accretionMax);
+        material.SetFloat(DiskSpin, accretionSpin);
+        material.SetTexture(DiskTexture, accretionTexture);
+        material.SetVector(AccretionDiskBrightness, accretionDiskBrightness);
+
+
+
+        List<PlanetStruct> planets = new List<PlanetStruct>();
+        foreach (Planet planet in FindObjectsOfType<Planet>()) {
+            PlanetStruct temp = new PlanetStruct();
+            temp.origin = planet.transform.position;
+            temp.radius = planet.radius;
+            planets.Add(temp);
+        }
+
+        if (buffer == null || buffer.count != planets.Count) {
+            OnDisable();
+            buffer = new ComputeBuffer(planets.Count, System.Runtime.InteropServices.Marshal.SizeOf(typeof(PlanetStruct)), ComputeBufferType.Default);
+        }
+        
+        buffer.SetData(planets);
+        material.SetInt(PlanetCount, planets.Count);
+        material.SetBuffer(Planets, buffer);
+    }
+
+    private void OnDisable() {
+        buffer?.Release();
+    }
+
+    private struct PlanetStruct {
+        internal Vector3 origin;
+        internal float radius;
     }
 
     private struct Ray {

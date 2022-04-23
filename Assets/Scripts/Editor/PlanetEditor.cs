@@ -18,17 +18,17 @@ public class PlanetEditor : Editor {
         using (var check = new EditorGUI.ChangeCheckScope()) {
             base.OnInspectorGUI();
             if (check.changed) {
-                planet.Generate();
+                UpdateAll();
             }
         }
 
         if (GUILayout.Button("Generate Planet")) {
-            planet.Generate();
+            UpdateAll();
         }
 
-        DrawSettingsEditor(planet.terrain, planet.UpdateTerrain, ref collapseTerrain, ref terrainEditor);
-        DrawSettingsEditor(planet.biomes, planet.UpdateBiomes, ref collapseBiomes, ref biomesEditor);
-        DrawSettingsEditor(planet.atmosphere, planet.UpdateAtmosphere, ref collapseAtmosphere, ref atmosphereEditor);
+        DrawSettingsEditor(planet.terrain, UpdateTerrain, ref collapseTerrain, ref terrainEditor);
+        DrawSettingsEditor(planet.biomes, UpdateBiomes, ref collapseBiomes, ref biomesEditor);
+        DrawSettingsEditor(planet.atmosphere, UpdateAtmosphere, ref collapseAtmosphere, ref atmosphereEditor);
     }
 
     void DrawSettingsEditor(Object settings, System.Action updateMethod, ref bool foldout, ref Editor editor)
@@ -46,6 +46,23 @@ public class PlanetEditor : Editor {
                 updateMethod();
             }
         }
+    }
+
+    private void UpdateAll() {
+        UpdateTerrain();
+    }
+
+    private void UpdateTerrain() {
+        planet.Init();
+        planet.GenerateMesh();
+    }
+
+    private void UpdateBiomes() {
+        
+    }
+
+    private void UpdateAtmosphere() {
+        
     }
 
     private void OnEnable()

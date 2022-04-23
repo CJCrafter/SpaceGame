@@ -36,7 +36,7 @@ public class CameraMoverEditor : Editor {
         foreach (Planet planet in FindObjectsOfType<Planet>()) {
             if (GUILayout.Button("Spectate " + planet.name)) {
                 cam.transform.parent = planet.transform;
-                cam.transform.localPosition = new Vector3(0f, 0f, planet.terrain.radius * 2f);
+                cam.transform.localPosition = new Vector3(0f, 0f, planet.radius * 2f);
 
                 Vector3 between = planet.transform.position - cam.transform.position;
                 cam.transform.localRotation = Quaternion.LookRotation(between);

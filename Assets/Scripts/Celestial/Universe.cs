@@ -11,9 +11,9 @@ public class Universe : MonoBehaviour {
 
     // Newton's gravitation constant, used in the gravity equation:
     // F = G * (m1 * m2) / (r * r)
-    public static float gravitationalConstant = 6.67430E-11f;
+    public const float gravitationalConstant = 6.67430E-11f;
 
-    // Do not mutate, only read. Call AddBody() and RemoveBody() to modify. 
+    // Do not mutate, only read.
     public List<GravityObject> hasGravity;
     public List<GravityObject> usesGravity;
 
@@ -48,20 +48,6 @@ public class Universe : MonoBehaviour {
             obj.ApplyVelocity();
         }
     }
-
-    public void AddBody(GravityObject body) {
-        if (body.hasGravity)
-            hasGravity.Add(body);
-        if (body.usesGravity)
-            usesGravity.Add(body);
-    }
-
-    public bool RemoveBody(GravityObject body) {
-        bool a = hasGravity.Remove(body);
-        bool b = usesGravity.Remove(body);
-        return a || b;
-    }
-
 }
 
 public class MissingUniverseException : Exception {

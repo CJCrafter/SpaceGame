@@ -91,19 +91,6 @@ struct Ray {
     float3 energy;
 };
 
-struct Material {
-    float3 specular;
-    float3 albedo; 
-};
-
-struct RayHit {
-    bool skipExtras;
-    float3 position;
-    float distance;
-    float3 normal;
-    Material material;
-};
-
 struct TraceResult {
     bool collides;
     float3 position;
@@ -114,13 +101,17 @@ struct TraceResult {
 struct Box {
     float3 min;
     float3 max;
-    Material material;
 };
 
 struct Sphere {
     float3 pos;
     float radius;
-    Material material;
+};
+
+struct Disc {
+    float3 pos;
+    float3 normal;
+    float radius;
 };
 
 
@@ -133,24 +124,6 @@ Ray CreateRay(float3 origin, float3 direction) {
     return ray;
 }
 
-Material CreateMaterial(float3 albedo, float3 specular) {
-    Material material;
-    material.albedo = albedo;
-    material.specular = specular;
-    return material;
-}
-static const Material defaultMaterial = CreateMaterial(float3(0.8f, 0.8f, 0.8f), float3(0.04, 0.04, 0.04));
-
-RayHit CreateRayHit() {
-    RayHit hit;
-    hit.skipExtras = false;
-    hit.position = float3(0, 0, 0);
-    hit.distance = maxFloat;
-    hit.normal = float3(0, 0, 0);
-    hit.material = defaultMaterial;
-    return hit;
-}
-
 TraceResult EmptyCollision() {
     TraceResult result;
     result.collides = false;
@@ -160,19 +133,17 @@ TraceResult EmptyCollision() {
     return result;
 }
 
-Box CreateBox(float3 min, float3 max, Material material) {
+Box CreateBox(float3 min, float3 max) {
     Box box;
     box.min = min;
     box.max = max;
-    box.material = material;
     return box;
 }
 
-Sphere CreateSphere(float3 pos, float radius, Material material) {
+Sphere CreateSphere(float3 pos, float radius) {
     Sphere sphere;
     sphere.pos = pos;
     sphere.radius = radius;
-    sphere.material = material;
     return sphere;
 }
 
@@ -201,7 +172,7 @@ TraceResult IntersectSphere(Ray ray, Sphere sphere) {
 }
 
 TraceResult IntersectSphere(Ray ray, float4 sphere) {
-    return IntersectSphere(ray, CreateSphere(sphere.xyz, sphere.w, defaultMaterial));
+    return IntersectSphere(ray, CreateSphere(sphere.xyz, sphere.w));
 }
 
 TraceResult IntersectBox(Ray ray, Box box, float distance) {
@@ -244,10 +215,102 @@ TraceResult IntersectBox(Ray ray, Box box, float distance) {
     return result;
 }
 
-TraceResult IntersectPlane() {
-    
+// Based upon https://mrl.cs.nyu.edu/~dzorin/rend05/lecture2.pdf
+TraceResult IntersectInfiniteCylinder(Ray ray, float3 cylinderOrigin, float3 cylinderDir, float cylinderRadius) {
+    float3 a0 = ray.direction - dot(ray.direction, cylinderDir) * cylinderDir;
+    float a = dot(a0,a0);
+ 
+    float3 dP = ray.origin - cylinderOrigin;
+    float3 c0 = dP - dot(dP, cylinderDir) * cylinderDir;
+    float c = dot(c0,c0) - cylinderRadius * cylinderRadius;
+ 
+    float b = 2 * dot(a0, c0);
+ 
+    float discriminant = b * b - 4 * a * c;
+ 
+    if (discriminant > 0) {
+        float s = sqrt(discriminant);
+        float dstToNear = (-b - s) / (2 * a);
+        float dstToFar = (-b + s) / (2 * a);
+        
+        if (dstToFar >= 0) {
+            float t = dstToNear < 0 ? dstToFar : dstToNear;
+            TraceResult result;
+            result.collides = true;
+            result.distance = t;
+            result.position = ray.origin + t * ray.direction;
+            result.normal = 0; // todo
+            return result;
+        }
+    }
+    return EmptyCollision();
 }
-
-TraceResult IntersectDisc() {
+ 
+// Based upon https://mrl.cs.nyu.edu/~dzorin/rend05/lecture2.pdf
+TraceResult IntersectPlane(Ray ray, float3 planeOrigin, float3 planeNormal) {
+    float denom = dot(planeNormal, ray.direction);
     
+    if (abs(denom) > 0.0001f) {
+        float t = dot(planeOrigin - ray.origin, planeNormal) / denom;
+        if (t >= 0) {
+            TraceResult result;
+            result.collides = true;
+            result.distance = t;
+            result.normal = 0; // todo
+            result.position = ray.origin + t * ray.direction;
+            return result;
+        }
+    }
+    
+    return EmptyCollision();
+}
+ 
+// Based upon https://mrl.cs.nyu.edu/~dzorin/rend05/lecture2.pdf
+TraceResult IntersectDisc(Ray ray, float3 p1, float3 p2, float3 discDir, float discRadius, float innerRadius) {
+    float t = maxFloat;
+    TraceResult cylinder = IntersectInfiniteCylinder(ray, p1, discDir, discRadius);
+ 
+    if (cylinder.distance < maxFloat) {
+        float finiteC1 = dot(discDir, cylinder.position - p1);
+        float finiteC2 = dot(discDir, cylinder.position - p2);
+ 
+        // Ray intersects with edges of the cylinder/disc
+        if (finiteC1 > 0 && finiteC2 < 0 && cylinder.distance > 0) {
+            t = cylinder.distance;
+        }
+        else {
+            float radiusSqr = discRadius * discRadius;
+            float innerRadiusSqr = innerRadius * innerRadius;
+
+            const TraceResult lowerPlane = IntersectPlane(ray, p1, discDir);
+            float p1q1DstSqr = dot(lowerPlane.position - p1, lowerPlane.position - p1);
+ 
+            // Ray intersects with lower plane of cylinder/disc
+            if (lowerPlane.collides && p1q1DstSqr < radiusSqr && p1q1DstSqr > innerRadiusSqr) {
+                if (lowerPlane.distance < t) {
+                    t = lowerPlane.distance;
+                }
+            }
+
+            const TraceResult upperPlane = IntersectPlane(ray, p2, discDir);
+            float p2q2DstSqr = dot(upperPlane.position - p2, upperPlane.position - p2);
+ 
+            // Ray intersects with upper plane of cylinder/disc
+            if (upperPlane.collides && p2q2DstSqr < radiusSqr && p2q2DstSqr > innerRadiusSqr) {
+                if (upperPlane.distance < t) {
+                    t = upperPlane.distance;
+                }
+            }
+        }
+    }
+
+    if (t == maxFloat)
+        return EmptyCollision();
+    
+    TraceResult result;
+    result.collides = true;
+    result.distance = t;
+    result.position = ray.origin + t * ray.direction;
+    result.normal = 0;
+    return result;
 }

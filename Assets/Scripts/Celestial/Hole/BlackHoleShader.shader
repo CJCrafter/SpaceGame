@@ -6,8 +6,14 @@ Shader "Unlit/BlackHoleShader" {
         _mass ("_mass", Float) = 0
         _step ("_step", Float) = 1
         _maxSteps ("_maxSteps", Int) = 1000
-        _boxDimensions ("_boxDimensions", Vector) = (0, 0, 0, 0)
-        _accretionDiskMinMax ("_accretionDiskMinmax", Vector) = (0, 0, 0, 0)
+        _diskWidth ("_diskWidth", Float) = 0.1
+        _diskInner ("_diskInner", Range(0, 1)) = 0.0
+        _diskOuter ("_diskOuter", Range(0, 1)) = 1.0
+        _diskSpin ("_diskSpin", Float) = 0
+        _accretionDiskBrightness ("_accretionDiskBrightness", Vector) = (0, 0, 0, 0)
+        _accretionDiskTexture ("_accretionDiskTexture", 2D) = "white" {}
+        _textureVars ("_textureVars", Vector) = (0, 0, 0, 0)
+        _planetCount ("_planetCount", Int) = 0
     }
     SubShader {
         Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
@@ -18,7 +24,11 @@ Shader "Unlit/BlackHoleShader" {
         Pass {
             CGPROGRAM
 
-            #pragma enable_d3d11_debug_symbols
+
+
+            //#pragma debug
+            //#pragma enable_d3d11_debug_symbols
+            #pragma target 4.0
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
@@ -31,6 +41,14 @@ Shader "Unlit/BlackHoleShader" {
             struct Interpolator {
                 float4 vertex : SV_POSITION;
                 float4 world : TEXCOORD1;
+                Sphere lensingSphere : TEXCOORD2;
+                uint planetCount : TEXCOORD5;
+            };
+
+            struct Planet {
+                float3 origin;
+                float radius;
+                //Texture2D<float4> texture;
             };
             
             float3 _center;
@@ -39,31 +57,72 @@ Shader "Unlit/BlackHoleShader" {
             float _mass;
             float _step;
             int _maxSteps;
-            float3 _boxDimensions;
-            float2 _accretionDiskMinMax;
+            float _diskWidth;
+            float _diskInner;
+            float _diskOuter;
+            float _diskSpin;
+            float3 _accretionDiskBrightness;
+            Texture2D<float4> _accretionDiskTexture;
+            SamplerState sampler_accretionDiskTexture;
+            float3 _textureVars;
+            int _planetCount;
+
+            StructuredBuffer<Planet> _planets;
             
             Interpolator vert (Vertex v) {
                 Interpolator o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.world = mul(unity_ObjectToWorld, v.vertex);
+
+                o.lensingSphere = CreateSphere(_center, _lensingRadius);
+                //uint numSpheres = 0;
+                //uint stride = 0;
+                //_planets.GetDimensions(numSpheres, stride);
+                o.planetCount = _planetCount;
                 return o;
             }
 
+            float2 discUV(float3 planarDiscPos, float3 discDir, float3 centre, float radius) {
+                float3 planarDiscPosNorm = normalize(planarDiscPos);
+                float sampleDist01 = length(planarDiscPos) / radius;
+             
+                float3 tangentTestVector = float3(1,0,0);
+                if(abs(dot(discDir, tangentTestVector)) >= 1)
+                    tangentTestVector = float3(0,1,0);
+             
+                float3 tangent = normalize(cross(discDir, tangentTestVector));
+                float3 biTangent = cross(tangent, discDir);
+                float phi = atan2(dot(planarDiscPosNorm, tangent), dot(planarDiscPosNorm, biTangent)) / PI;
+                phi = remap(phi, -1, 1, 0, 1);
+             
+                // Radial distance
+                float u = sampleDist01;
+                // Angular distance
+                float v = phi;
+             
+                return float2(u,v);
+            }
+            
+            float4 accretionDiskColor(float2 uv, float distance) {
+                float col = _accretionDiskTexture.SampleLevel(sampler_accretionDiskTexture, uv * float2(1, 1), 0).r;
+                float brightness = col * (1 - distance);
+                return float4(1.0 * col, 0.6 * col, 0.0, 0.1 + brightness);
+            }
+            
             float4 frag(Interpolator vertex) : SV_Target {
-                const Sphere singularitySphere = CreateSphere(_center, _singularityRadius, CreateMaterial(0, 0));
-                const Sphere lensingSphere = CreateSphere(_center, _lensingRadius, CreateMaterial(0, 0));
-                const Box accretionDisk = CreateBox(_center - _boxDimensions, _center + _boxDimensions, CreateMaterial(float3(1, 0.5, 0), 0));
-
                 Ray ray = CreateRay(_WorldSpaceCameraPos, normalize(vertex.world - _WorldSpaceCameraPos));
                 
-                float lenseDistance = _lensingRadius * _lensingRadius;
-                float singularityDistance = _singularityRadius * _singularityRadius;
+                const float lenseDistance = _lensingRadius * _lensingRadius;
+                const float singularityDistance = _singularityRadius * _singularityRadius;
+                const float ringMin = _diskInner * _lensingRadius;
+                const float ringMax = _diskOuter * _lensingRadius;
                 
                 int i = 0;
-                const TraceResult result = IntersectSphere(ray, lensingSphere);
+                const TraceResult result = IntersectSphere(ray, vertex.lensingSphere);
                 bool escaped = false;
+                
                 while (result.collides && i < _maxSteps) {
-
+                    
                     if (i == 0)
                         ray.origin = result.position;
 
@@ -74,27 +133,60 @@ Shader "Unlit/BlackHoleShader" {
                     ray.direction = normalize(ray.direction + between * _step);
                     ray.origin += ray.direction * _step;
 
-                    TraceResult hit = IntersectBox(ray, accretionDisk, _step);
-                    if (hit.collides) {
-                        const float l = length(hit.position - _center) / length(_boxDimensions);
-
-                        if (l > _accretionDiskMinMax.x && l < _accretionDiskMinMax.y)
-                            return float4(1.0 * (1 - l), 0.5 * (1 - l), 0.0, 1.0);
-                    }
+                    //TraceResult hit = IntersectBox(ray, accretionDisk, _step);
                     
-                    if (lengthSquared(ray.origin, _center) > lenseDistance) {
+                    float3 up = float3(0, 1, 0);
+                    float3 p1 = _center - 0.5 * up * _diskWidth;
+                    float3 p2 = _center + 0.5 * up * _diskWidth;
+                    TraceResult hit = IntersectDisc(ray, p1, p2, up, ringMax, ringMin);
+                    if (hit.collides && hit.distance < _step) {
+                        float3 planarDiscPos = hit.position - dot(hit.position - _center, up) * up - _center;
+                        float2 uv = discUV(planarDiscPos, up, _center, ringMax);
+                        uv.y += _Time.x * _diskSpin;
+
+                        return accretionDiskColor(uv, lengthSquared(hit.position, _center) / lenseDistance);
+                        //return float4(uv.x, (uv.y + _Time.y * _diskSpin) % 1, 0.0, 1.0);
+                    }
+
+                    const float distance = lengthSquared(ray.origin, _center);
+                    if (distance > lenseDistance) {
                         escaped = true;
                         break;
-                    } 
+                    }
+                    if (distance < singularityDistance)
+                        break;
                     
                     i++;
                 }
 
-                if (escaped)
+                // After a light ray escapes this black-hole, we need to check
+                // if the ray will hit a planet. We should sample the color at
+                // this hit UV point.
+                if (escaped) {
+                    TraceResult smallest = EmptyCollision();
+                    smallest.distance = maxFloat;
+                    
+                    for (uint j = 0; j < vertex.planetCount; j++) {
+                        const Planet planet = _planets[j]; 
+                        const TraceResult hit = IntersectSphere(ray, CreateSphere(planet.origin, planet.radius));
+                        if (hit.collides && hit.distance >= 0 && hit.distance < smallest.distance) {
+                            smallest = hit;
+                        }
+                    }
+
+                    // Extra check in case no planets were hit
+                    if (smallest.collides)
+                        return float4(0, 0, 1, 1);
+                    
                     return float4(0, 0, 0, 0);
-                
+                }
+
+                // When the ray bounces around (seemingly) infinitely, the ray
+                // is in the singularity, and thus returns pitch black.
                 return float4(0, 0, 0, 1);
             }
+
+            
             
             ENDCG
         }

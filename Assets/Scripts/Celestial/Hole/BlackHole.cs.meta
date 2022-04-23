@@ -3,7 +3,8 @@ guid: f8ea375d2549b974d8dcb4b95cac86ff
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - accretionTexture: {fileID: 2800000, guid: 892c3f4869022d347925eb17a87435af, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

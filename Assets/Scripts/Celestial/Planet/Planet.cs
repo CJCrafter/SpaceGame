@@ -1,129 +1,56 @@
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Planet : MonoBehaviour {
+    
+    // Some general settings
+    [Min(0)] public float radius;
+    [Range(0, 5)] public int detail;
 
-    [Range(1, 8), Tooltip("Divides cube into smaller meshes, scale with radius for best results")]
-    public int chunks = 2;
-    [Range(2, 256), Tooltip("Width of mesh, defines how many vertices are use (resolution * resolution)")]
-    public int resolution = 8;
-    [Range(0f, 180f), Tooltip("Hide backwards chunks, use >90.0f for best results")] 
-    public float chunkAngle = 100.0f;
-
-    [SerializeField, HideInInspector]
-    private MeshFilter[] meshes;
-    private Chunk[] faces;
-
-    // Settings for planets are separated into their own little sections
-    // so we can collapse them in the editor to help keep things organized
-    public TerrainHandler terrain;
+    // Since a planet has a bunch of settings, we should divide it into more
+    // 'digestible' sections (Also good for saving settings between planets
+    // and adding collapsable sections)
     public BiomeHandler biomes;
+    public TerrainHandler terrain;
     public AtmosphereHandler atmosphere;
 
-    // Other
-    [Range(0f, 0.5f)]
-    public float rotation;
-    
+
     public void Init() {
         terrain.Update();
-        // todo
-
-        Vector3[] localUp =
-            {
-                Vector3.up, Vector3.back, Vector3.down, Vector3.forward, Vector3.left, Vector3.right
-            };
-
-        int total = 6 * chunks * chunks;
-
-        // When the chunk count changes, we need to delete old meshes
-        // before we regenerate them. Otherwise we would just keep adding
-        // GameObjects over and over.
-        if (meshes == null || meshes.Length != total || faces == null) {
-            for (int i = transform.childCount - 1; i >= 0; i--) {
-                GameObject obj = transform.GetChild(i).gameObject;
-                
-                // Before we destroy the sub-mesh, we should check to make sure
-                // that we are actually destroying the MESH and not, for example,
-                // a spectating camera.
-                if (obj.GetComponent<MeshRenderer>() != null)
-                    DestroyImmediate(obj);
-            }
-
-            meshes = new MeshFilter[total];
-        }
-        else if (meshes[0].sharedMesh.vertexCount == resolution * resolution) {
-            return; // Experimental
-        }
-
-        Debug.Log("Update");
-        faces = new Chunk[total];
-        int meshesPerFace = chunks * chunks;
-        for (int i = 0; i < total; i++) {
-            Vector3 up = localUp[i / meshesPerFace];
-            int y = (i % meshesPerFace) / chunks % chunks;
-            int x = (i % meshesPerFace) % chunks;
-            //Debug.Log(i + ": (" + x + ", " + y + ")");
-
-            if (meshes[i] == null) {
-                GameObject obj = new GameObject("Mesh_" + i);
-                obj.transform.parent = transform;
-                obj.transform.localPosition = Vector3.zero;
-
-                obj.AddComponent<MeshRenderer>();
-                meshes[i] = obj.AddComponent<MeshFilter>();
-                meshes[i].sharedMesh = new Mesh();
-            }
-
-            meshes[i].GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
-            Vector2 min = new Vector2(x, y) / chunks;
-            Vector2 max = new Vector2(x + 1, y + 1) / chunks;
-            faces[i] = new Chunk(terrain, meshes[i].sharedMesh, resolution, up, min, max);
-        }
+        Icosphere.Create(gameObject, detail, 1f);
+        Debug.Log(gameObject.GetComponent<MeshFilter>().mesh.vertexCount);
     }
 
-    public void Generate() {
+    public void GenerateMesh() {
+        Mesh mesh = GetComponent<MeshFilter>().mesh;
+        GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
+
+        var oldVertices = mesh.vertices;
+        var vertices = new List<Vector3>();
+
+        for (int i = 0; i < mesh.vertexCount; i++) {
+            float unscaled = terrain.CalculateUnscaledElevation(oldVertices[i]);
+            float elevated = terrain.CalculateScaledElevation(unscaled, radius);
+
+            vertices.Add(oldVertices[i] * elevated);
+        }
+        
+        mesh.SetVertices(vertices);
+        mesh.RecalculateNormals();
+
+        var uvs = new List<Vector2>();
+        var normals = mesh.normals;
+        for (int i = 0; i < mesh.vertexCount; i++) {
+            float angle = Vector3.Angle(oldVertices[i], normals[i]);
+            uvs.Add(new Vector2(angle, (float) i / mesh.vertexCount));
+        }
+        
+        mesh.SetUVs(0, uvs);
+    }
+
+    private void OnValidate() {
         Init();
-        GenerateMeshes();
-        // todo
-    }
-
-    private void GenerateMeshes() {
-        foreach (Chunk chunk in faces)
-            chunk.Generate();
-    }
-
-    public void UpdateTerrain() {
-        Init();
-        GenerateMeshes();
-    }
-
-    public void UpdateBiomes() {
-        Init();
-        //biomes.Update();
-    }
-
-    public void UpdateAtmosphere() {
-        //atmosphere.Update();
-    }
-
-    private void Update() {
-
-        transform.localRotation *= Quaternion.AngleAxis(rotation, Vector3.up);
-
-        if (false) {
-            // Chunks should only be shown if the angle between their normal
-            // and the camera is less then chunkAngle. This will improve GPU performance
-            Camera cam = Camera.current;
-            if (cam == null)
-                cam = FindObjectOfType<Camera>();
-
-            // Planet has not yet been generated.
-            if (faces == null)
-                return;
-
-            for (var i = 0; i < faces.Length; i++) {
-                float angle = Quaternion.Angle(cam.transform.rotation, faces[i].rotation);
-                meshes[i].gameObject.SetActive(angle < chunkAngle);
-            }
-        }
+        GenerateMesh();
     }
 }

@@ -6,8 +6,6 @@ using UnityEngine;
 [CreateAssetMenu()]
 public class TerrainHandler : ScriptableObject {
 
-    [Min(0f)] 
-    public float radius;
     public List<NoiseLayer> layers;
     private INoiseFilter[] filters;
 
@@ -41,7 +39,7 @@ public class TerrainHandler : ScriptableObject {
         return elevation;
     }
 
-    public float CalculateScaledElevation(float unscaled) {
+    public float CalculateScaledElevation(float unscaled, float radius) {
         return radius * (1f + unscaled);
     }
 }
