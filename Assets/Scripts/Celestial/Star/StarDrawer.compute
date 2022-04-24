@@ -1,0 +1,63 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Shaders/Math.cginc"
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+float4x4 _cameraToWorld;
+float4x4 _cameraInverseProjection;
+sampler2D _gradient;
+
+struct Star {
+    float3 position;
+    float time;
+    float brightness;
+    float radius;
+};
+
+int _starCount;
+StructuredBuffer<Star> _stars;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    uint width;
+    uint height;
+    Result.GetDimensions(width, height);
+
+    // For testing
+    //Result[id.xy] = float4(id.xy / float2(width, height), 1, 0);
+    //return;
+
+    const float longitude = float(id.x) / width;
+    const float latitude = float(id.y) / height;
+    const float theta = TAU * longitude;
+    const float phi = PI * latitude;
+
+    Result[id.xy] = float4(longitude, latitude, 0, 0);
+    return;
+    
+    // Convert longitude/latitude to xyz
+    const float3 direction = normalize(float3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi)));
+    //Result[id.xy] = float4(direction, 0);
+    //return;
+    const float3 origin = float3(0, 0, 0);
+    
+    
+    const Ray ray = CreateRay(origin, direction);
+    float3 color = float3(0, 0, 0);
+    for (int i = 0; i < _starCount; i++) {
+        const Star star = _stars[i];
+        const TraceResult result = IntersectSphere(ray, CreateSphere(star.position, star.radius));
+
+        // When we find a collision, we can stop doing work. Lets assume no
+        // stars can overlap. 
+        if (result.collides) {
+            color = tex2Dlod(_gradient, float4(star.time, 0.5, 0, 0));
+            break;
+        }
+    }
+
+    Result[id.xy] = float4(color, 0);
+}

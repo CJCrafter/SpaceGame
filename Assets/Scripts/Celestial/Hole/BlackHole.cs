@@ -14,6 +14,8 @@ public class BlackHole : MonoBehaviour {
     public float accretionSpin;
     public Texture accretionTexture;
     public Vector3 accretionDiskBrightness;
+    public float test;
+    public Stars stars;
     
     public bool updateGravity;
     public bool debug;
@@ -40,6 +42,7 @@ public class BlackHole : MonoBehaviour {
     private static readonly int DiskTexture = Shader.PropertyToID("_accretionDiskTexture");
     private static readonly int Planets = Shader.PropertyToID("_planets");
     private static readonly int PlanetCount = Shader.PropertyToID("_planetCount");
+    private static readonly int _Stars = Shader.PropertyToID("_starTexture");
 
 
     private void Start() {
@@ -128,7 +131,7 @@ public class BlackHole : MonoBehaviour {
     }
 
     private void UpdateShader() {
-        if (material == null) {
+        if (true || material == null) {
             material = new Material(Shader.Find("Unlit/BlackHoleShader"));
             GetComponent<MeshRenderer>().material = material;
         }
@@ -145,7 +148,8 @@ public class BlackHole : MonoBehaviour {
         material.SetFloat(DiskSpin, accretionSpin);
         material.SetTexture(DiskTexture, accretionTexture);
         material.SetVector(AccretionDiskBrightness, accretionDiskBrightness);
-
+        material.SetFloat("_test", test);
+        material.SetTexture(_Stars, stars.target);
 
 
         List<PlanetStruct> planets = new List<PlanetStruct>();

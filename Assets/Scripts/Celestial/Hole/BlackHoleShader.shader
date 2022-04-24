@@ -14,11 +14,12 @@ Shader "Unlit/BlackHoleShader" {
         _accretionDiskTexture ("_accretionDiskTexture", 2D) = "white" {}
         _textureVars ("_textureVars", Vector) = (0, 0, 0, 0)
         _planetCount ("_planetCount", Int) = 0
+        _starTexture ("_starTexture", 2D) = "black" {}
     }
     SubShader {
-        Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
-        ZWrite Off
-        Blend SrcAlpha OneMinusSrcAlpha
+        //Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
+        //ZWrite Off
+        //Blend SrcAlpha OneMinusSrcAlpha
         //Cull front 
 
         Pass {
@@ -66,6 +67,8 @@ Shader "Unlit/BlackHoleShader" {
             SamplerState sampler_accretionDiskTexture;
             float3 _textureVars;
             int _planetCount;
+            sampler2D _starTexture;
+            float _test;
 
             StructuredBuffer<Planet> _planets;
             
@@ -103,13 +106,13 @@ Shader "Unlit/BlackHoleShader" {
                 return float2(u,v);
             }
             
-            float4 accretionDiskColor(float2 uv, float distance) {
+            float3 accretionDiskColor(float2 uv, float distance) {
                 float col = _accretionDiskTexture.SampleLevel(sampler_accretionDiskTexture, uv * float2(1, 1), 0).r;
                 float brightness = col * (1 - distance);
-                return float4(1.0 * col, 0.6 * col, 0.0, 0.1 + brightness);
+                return float3(1.0 * col, 0.6 * col, 0.0);
             }
             
-            float4 frag(Interpolator vertex) : SV_Target {
+            float3 frag(Interpolator vertex) : SV_Target {
                 Ray ray = CreateRay(_WorldSpaceCameraPos, normalize(vertex.world - _WorldSpaceCameraPos));
                 
                 const float lenseDistance = _lensingRadius * _lensingRadius;
@@ -159,6 +162,13 @@ Shader "Unlit/BlackHoleShader" {
                     i++;
                 }
 
+                // When the sphere's scale is larger then the lensing radius,
+                // will appear. Let's color it a hideous color so we fix it
+                // TODO consider skipping initial sphere collision 
+                if (!result.collides) {
+                    return float3(1, 0, 0.5);
+                }
+
                 // After a light ray escapes this black-hole, we need to check
                 // if the ray will hit a planet. We should sample the color at
                 // this hit UV point.
@@ -174,16 +184,18 @@ Shader "Unlit/BlackHoleShader" {
                         }
                     }
 
-                    // Extra check in case no planets were hit
+                    // Show blue when we hit a planet todo
                     if (smallest.collides)
-                        return float4(0, 0, 1, 1);
-                    
-                    return float4(0, 0, 0, 0);
+                        return float3(0, 0, 1);
+
+                    const float theta = asin(-ray.direction.z);
+                    const float phi = atan2(ray.direction.x, ray.direction.y);
+                    return tex2D(_starTexture, float2(theta, phi));
                 }
 
                 // When the ray bounces around (seemingly) infinitely, the ray
                 // is in the singularity, and thus returns pitch black.
-                return float4(0, 0, 0, 1);
+                return float3(0, 0, 0);
             }
 
             

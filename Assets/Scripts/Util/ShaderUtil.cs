@@ -3,6 +3,11 @@ using UnityEngine;
 public class ShaderUtil
 {
 
+    public static Texture2D GenerateTextureFromGradient(Gradient gradient, int width) {
+        Texture2D texture = null;
+        return GenerateTextureFromGradient(gradient, width, ref texture);
+    }
+    
     public static Texture2D GenerateTextureFromGradient(Gradient gradient, int width, ref Texture2D texture) {
         if (texture == null || texture.height != 1 || texture.width != width) {
             texture = new Texture2D(width, 1)
