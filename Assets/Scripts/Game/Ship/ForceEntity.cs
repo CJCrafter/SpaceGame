@@ -81,7 +81,7 @@ public class ForceEntity : MonoBehaviour {
         }
     }
     
-    private void Update() {
+    private void FixedUpdate() {
         UpdateInputs();
         CalculateForces();
         

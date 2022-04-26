@@ -15,7 +15,7 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   mode:
     overrideState: 0
     value: 1
@@ -1391,7 +1391,7 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   showEditorMainBehavior: 1
   showEditorBloomBehavior: 1
   showEditorLensSurfaceBehavior: 1
@@ -1443,7 +1443,7 @@ MonoBehaviour:
     value: 7
   bloomIntensity:
     overrideState: 1
-    value: 1.75
+    value: 2.89
   allowLensSurface:
     overrideState: 1
     value: 1

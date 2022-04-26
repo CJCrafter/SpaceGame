@@ -1,20 +1,16 @@
 ﻿using UnityEngine;
 
-public class PlayerShip : ForceEntity {
+public class PlayerShip : Ship {
     
-    public float engineAcceleration = 10f;
-    public float sensitivity = 2f;
     public bool soft;
+    public float crosshairSensitivity;
 
-    private Rocket[] rockets;
-
-    protected override void Start() {
-        base.Start();
-        
-        rockets = transform.GetComponentsInChildren<Rocket>();
-    }
+    private Vector2 crosshair;
+    
     
     protected override void UpdateInputs() {
+        
+        // * ----- UPDATE ROTATION ----- * //
         if (Input.GetButtonDown("Soft Controls"))
             soft = !soft;
 
@@ -26,6 +22,12 @@ public class PlayerShip : ForceEntity {
         
         Quaternion rotation = Quaternion.Euler(yaw, pitch, roll);
         transform.localRotation *= rotation;
+
+        
+        // * ----- UPDATE CROSS-HAIR AND FIRE ----- * //
+        if (Input.GetButton("Fire")) {
+            FireWeapon();
+        }
     }
 
     public override Vector3 CalculateThrust() {

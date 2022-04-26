@@ -5,14 +5,18 @@ using UnityEngine;
 [CreateAssetMenu()]
 public class BiomeHandler : ScriptableObject {
 
-    public Material material;
-    public Gradient ocean;
-    public Biome[] biomes;
-    public NoiseSettings biomeNoise;
-    public float noiseOffset;
-    public float noiseStrength;
-    [Range(0f, 1f)]
-    public float blendAmount;
+    public Gradient gradient;
+    public float shoreHeight = 0.1f;
+    public float oceanHeight = 0.0f;
+
+    [HideInInspector] public Material material;
+
+    private void OnEnable() {
+        //material = new Material(Shader.Find(""));
+        material.SetTexture("_Gradient", ShaderUtil.GenerateTextureFromGradient(gradient, 32));
+        material.SetFloat("_ShoreHeight", shoreHeight);
+        
+    }
 
     [System.Serializable]
     public class Biome
@@ -26,5 +30,6 @@ public class BiomeHandler : ScriptableObject {
     }
 
     public BiomeHandler() {
+        
     }
 }
