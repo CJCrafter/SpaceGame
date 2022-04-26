@@ -18,8 +18,6 @@ public class Stars : MonoBehaviour {
     private ComputeBuffer buffer;
     private Material skybox;
 
-    public bool writeToFile;
-    
     // * ----- PROPERTY CACHE ----- * // 
     private static readonly int _mainTex = Shader.PropertyToID("_MainTex");
 
@@ -43,11 +41,12 @@ public class Stars : MonoBehaviour {
         }
     }
 
-    private void Start() {
-        OnValidate();  
+    private void Awake() {
+        Generate();
     }
 
-    private void OnValidate() {
+    public void Generate() {
+        Debug.Log("Generating star box");
         Init();
         
         Random.InitState(seed);
@@ -81,22 +80,17 @@ public class Stars : MonoBehaviour {
 
         //test.targetTexture = target;
         RenderSettings.skybox = skybox;
-
-        if (writeToFile) {
-            Texture2D png = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
-            RenderTexture.active = target;
-            png.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
-            png.Apply();
-            //Destroy(png); // executes on next frame
-            byte[] bytes = png.EncodeToPNG();
-            System.IO.File.WriteAllBytes("C:\\Users\\colli\\Desktop\\Code\\SpaceGame\\Assets\\Scripts\\Celestial\\Star\\img.png", bytes);
-            writeToFile = false;
-        }
     }
 
-    //private void Render(RenderTexture destination) {
-    //    Graphics.Blit(target, destination);
-    //}
+    public void GenerateFile() {
+        Texture2D png = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
+        RenderTexture.active = target;
+        png.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
+        png.Apply();
+        //Destroy(png); // executes on next frame
+        byte[] bytes = png.EncodeToPNG();
+        System.IO.File.WriteAllBytes("C:\\Users\\colli\\Desktop\\Code\\SpaceGame\\Assets\\Scripts\\Celestial\\Star\\img.png", bytes);
+    }
 
 
     private void OnDisable() {
@@ -109,7 +103,7 @@ public class Stars : MonoBehaviour {
         float val = selector.Evaluate(Random.value);
 
         float time = val;
-        float brightness = val * (brightnessRange.y - brightnessRange.x) + brightnessRange.x;
+        float brightness = Random.value * (brightnessRange.y - brightnessRange.x) + brightnessRange.x;
         float radius = val * (sizeRange.y - sizeRange.x) + sizeRange.x;
 
         return new StarData
@@ -125,6 +119,6 @@ public class Stars : MonoBehaviour {
         internal Vector3 position;
         internal float time;
         internal float brightness;
-        internal float radius;
+        internal float radius; 
     }
 }

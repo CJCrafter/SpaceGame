@@ -54,7 +54,7 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
         // When we find a collision, we can stop doing work. Lets assume no
         // stars can overlap. 
         if (result.collides) {
-            color = tex2Dlod(_gradient, float4(star.time, 0.5, 0, 0)).xyz;
+            color = tex2Dlod(_gradient, float4(star.time, 0.5, 0, 0)).xyz * star.brightness;
             break;
         }
     }

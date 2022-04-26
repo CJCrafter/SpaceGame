@@ -65,10 +65,10 @@ public class PlanetEditor : Editor {
         
     }
 
-    private void OnEnable()
-    {
+    private void OnEnable() {
         planet = (Planet)target;
     }
+    
     // MenuItems allow us to add options to the editor in general, instead
     // of adding stuff to the inspector for each gameobject.
     [MenuItem("GameObject/Celestial/Create Planet")]

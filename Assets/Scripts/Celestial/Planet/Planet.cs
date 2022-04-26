@@ -23,7 +23,7 @@ public class Planet : MonoBehaviour {
     }
 
     public void GenerateMesh() {
-        Mesh mesh = GetComponent<MeshFilter>().mesh;
+        Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
         GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
 
         var oldVertices = mesh.vertices;
