@@ -35,8 +35,8 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     const float theta = TAU * longitude;
     const float phi = PI * latitude;
 
-    Result[id.xy] = float4(longitude, latitude, 0, 0);
-    return;
+    //Result[id.xy] = float4(longitude, latitude, 0, 0);
+    //return;
     
     // Convert longitude/latitude to xyz
     const float3 direction = normalize(float3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi)));
@@ -54,7 +54,7 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
         // When we find a collision, we can stop doing work. Lets assume no
         // stars can overlap. 
         if (result.collides) {
-            color = tex2Dlod(_gradient, float4(star.time, 0.5, 0, 0));
+            color = tex2Dlod(_gradient, float4(star.time, 0.5, 0, 0)).xyz;
             break;
         }
     }

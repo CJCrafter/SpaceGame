@@ -19,7 +19,7 @@ public class Planet : MonoBehaviour {
     public void Init() {
         terrain.Update();
         Icosphere.Create(gameObject, detail, 1f);
-        Debug.Log(gameObject.GetComponent<MeshFilter>().mesh.vertexCount);
+        //Debug.Log(gameObject.GetComponent<MeshFilter>().mesh.vertexCount);
     }
 
     public void GenerateMesh() {

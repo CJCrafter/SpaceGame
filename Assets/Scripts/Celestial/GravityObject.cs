@@ -26,24 +26,32 @@ public class GravityObject : MonoBehaviour {
     }
 
     public void ApplyGravity() {
-        Universe universe = FindObjectOfType<Universe>();
-        foreach (var planet in universe.hasGravity) {
+        foreach (GravityObject planet in universe.hasGravity) {
             Vector3 direction = planet.transform.position - transform.position;
 
             float distanceSquared = direction.sqrMagnitude;
             if (distanceSquared == 0.0f)
                 continue;
 
-            float force = Universe.gravitationalConstant * (mass * planet.mass) / distanceSquared;
+            float force = Universe.gravitationalConstant * planet.mass / distanceSquared;
 
             direction.Normalize();
-            direction *= force / mass * Time.deltaTime * universe.timeScale;
+            direction *= force * Time.deltaTime * universe.timeScale;
             velocity += direction;
         }
     }
 
+    public float GetAccelerationAt(Vector3 position, out Vector3 direction) {
+        direction = transform.position - position;
+        float distanceSquared = direction.sqrMagnitude;
+        float force = Universe.gravitationalConstant * mass / distanceSquared;
+        
+        direction.Normalize();
+        direction *= force * Time.deltaTime * universe.timeScale;
+        return force;
+    }
+
     public void ApplyVelocity() {
-        Universe universe = FindObjectOfType<Universe>();
         transform.position += velocity * Time.deltaTime * universe.timeScale;
     }
 }

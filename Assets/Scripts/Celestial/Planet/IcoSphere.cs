@@ -65,7 +65,7 @@ public static class Icosphere {
         if (obj.GetComponent<MeshFilter>() == null) obj.AddComponent<MeshFilter>();
         
         MeshFilter filter = obj.GetComponent<MeshFilter>();
-        Mesh mesh = filter.mesh;
+        Mesh mesh = filter.sharedMesh;
         mesh.Clear();
         
         var middlePointIndexCache = new Dictionary<long, int>();
