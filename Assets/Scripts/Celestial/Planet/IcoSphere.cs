@@ -60,14 +60,9 @@ public static class Icosphere {
         return i;
     }
 
-    public static void Create(GameObject obj, int recursionLevel, float radius) {
-        if (obj.GetComponent<MeshRenderer>() == null) obj.AddComponent<MeshRenderer>();
-        if (obj.GetComponent<MeshFilter>() == null) obj.AddComponent<MeshFilter>();
-        
-        MeshFilter filter = obj.GetComponent<MeshFilter>();
-        Mesh mesh = filter.sharedMesh;
-        mesh.Clear();
-        
+    public static Mesh Create(int recursionLevel, float radius) {
+        Mesh mesh = new Mesh();
+
         var middlePointIndexCache = new Dictionary<long, int>();
         float t = (1f + Mathf.Sqrt(5f)) / 2f;
         var vertList = new List<Vector3>
@@ -155,5 +150,6 @@ public static class Icosphere {
         
         mesh.RecalculateBounds();
         mesh.Optimize();
+        return mesh;
     }
 }

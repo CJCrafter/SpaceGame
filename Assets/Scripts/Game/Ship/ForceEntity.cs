@@ -7,7 +7,7 @@ public class ForceEntity : MonoBehaviour {
     public float dragCoefficient = 0.75f;
     public float mass = 136078f; // mass of fully loaded starship
     public bool debugForces;
-
+    
     public Vector3 localUp => (transform.position - strongestGravity.transform.position).normalized;
 
     [SerializeField, HideInInspector] private float[,,] crossSectionLookup;
@@ -51,7 +51,7 @@ public class ForceEntity : MonoBehaviour {
                     // Loop through 'horizontally' and 'vertically' and ray
                     // trace. Total up all positive hits to estimate the area.
                     int total = 0;
-                    const int detail = 32;
+                    const int detail = 16;
                     float step = furthestPoint / detail;
                     for (int i = -detail; i < detail; i++) {
                         for (int j = -detail; j < detail; j++) {
@@ -73,7 +73,7 @@ public class ForceEntity : MonoBehaviour {
                     // This multiplier should be proportional to 'furthestPoint'.
                     // It helps us to determine the conversion rate between pixels
                     // and meters. 
-                    float multiplier = furthestPoint * 10f;
+                    float multiplier = furthestPoint;
                     crossSectionLookup[x + 1, y + 1, z + 1] = (float) total / (detail * detail) * multiplier;
                     Debug.Log("Calculated " + crossSectionLookup[x + 1, y + 1, z + 1] + " for " + direction);
                 }   
@@ -84,8 +84,10 @@ public class ForceEntity : MonoBehaviour {
     private void FixedUpdate() {
         UpdateInputs();
         CalculateForces();
-        
-        transform.position += body.velocity * Time.deltaTime;
+    }
+
+    protected virtual void OnValidate() {
+        GetComponent<Rigidbody>().mass = mass;
     }
 
     protected virtual void UpdateInputs() {
@@ -99,18 +101,18 @@ public class ForceEntity : MonoBehaviour {
 
         if (debugForces) {
             Vector3 origin = transform.position;
-            Debug.DrawRay(origin, drag * 1000, Color.red);
-            Debug.DrawRay(origin, buoyancy * 1000, Color.blue);
-            Debug.DrawRay(origin, thrust * 1000, Color.yellow);
+            Debug.DrawRay(origin, drag, Color.red);
+            Debug.DrawRay(origin, buoyancy, Color.blue);
+            Debug.DrawRay(origin, thrust, Color.yellow);
             foreach (Vector3 ray in gravity) 
-                Debug.DrawRay(origin, ray * 1000, Color.green);
+                Debug.DrawRay(origin, ray, Color.green);
         }
         
-        body.velocity += drag * Time.deltaTime;
-        //body.velocity += buoyancy * Time.deltaTime;
-        body.velocity += thrust * Time.deltaTime;
+        body.AddForce(drag, ForceMode.Impulse);
+        body.AddForce(buoyancy, ForceMode.Impulse);
+        body.AddForce(thrust, ForceMode.Impulse);
         foreach (Vector3 ray in gravity)
-            body.velocity += ray * Time.deltaTime;
+            body.AddForce(ray, ForceMode.Impulse);
     }
 
     /**
@@ -119,8 +121,11 @@ public class ForceEntity : MonoBehaviour {
      * (flip sideways to increase drag). TECHNICALLY the drag coefficient will
      * also change based on direction, but let's not go overboard with the maths.
      *
-     * Equation: F = 0.5 * fAv^2
-     * f = drag coefficient, 0.3 = car, 0.05 = plane foil, 1.0 = horizontal 
+     * Equation: F = 0.5 * pfAv^2
+     * p = fluid density
+     * f = drag coefficient, 0.3 = car, 0.05 = plane foil, 1.0 = horizontal
+     * A = Cross area exposed to fluid (based on velocity)
+     * v = velocity
      */
     public Vector3 CalculateDrag() {
         Vector3 velocity = body.velocity;
@@ -128,7 +133,7 @@ public class ForceEntity : MonoBehaviour {
 
         Vector3 n = force.normalized;
         float area = crossSectionLookup[Mathf.RoundToInt(n.x) + 1, Mathf.RoundToInt(n.y) + 1, Mathf.RoundToInt(n.z) + 1];
-        force *= 0.5f * dragCoefficient * area * Time.deltaTime;
+        force *= 0.5f * CalculateDensity() * dragCoefficient * area * Time.fixedDeltaTime;
         
         // Make sure the drag is opposite to motion
         force.x *= velocity.x > 0 ? -1 : 1;
@@ -151,9 +156,27 @@ public class ForceEntity : MonoBehaviour {
      * V = displaced fluid volume (volume of spaceship)
      */
     public Vector3 CalculateBuoyancy() {
-        float density = 0.01f; // temporary!! fix me
+        float g = strongestGravity.GetAccelerationAt(transform.position, out Vector3 unused);
+        return localUp * CalculateDensity() * g * volume * Time.fixedDeltaTime;
+    }
 
-        return localUp * density * volume * Time.deltaTime;
+    public float CalculateDensity() {
+        if (strongestGravity == null)
+            return 0f;
+        
+        // Currently only supports planets
+        Planet planet = strongestGravity.GetComponent<Planet>();
+        if (planet == null)
+            return 0f;
+
+        float outer = planet.radius * planet.atmosphere.atmospherePercentage;
+        float distance = MathUtil.Distance(transform.position, strongestGravity.transform.position);
+        if (distance > outer)
+            return 0f;
+        if (distance < planet.elevationBounds.max * planet.radius * planet.biomes.oceanHeight)
+            return 997f; // density of water
+
+        return MathUtil.Remap(distance, 0, outer, 0, planet.atmosphere.atmosphereDensity);
     }
 
     public Vector3[] CalculateGravity() {
@@ -172,8 +195,8 @@ public class ForceEntity : MonoBehaviour {
                 strongestGravity = obj;
                 strongestForce = force;
             }
-            
-            temp[i] = vector;
+
+            temp[i] = vector * mass;
         }
 
         return temp;

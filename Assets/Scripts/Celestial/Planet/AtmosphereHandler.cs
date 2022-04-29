@@ -2,17 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AtmosphereHandler : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+[CreateAssetMenu()]
+public class AtmosphereHandler : ScriptableObject {
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    [Range(0f, 1f)] public float atmospherePercentage = 0.05f;
+    [Min(0f)] public float atmosphereDensity = 1.225f;
 }

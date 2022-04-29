@@ -26,13 +26,42 @@ public class PlanetEditor : Editor {
             UpdateAll();
         }
 
+        if (GUILayout.Button("Guess Gravity")) {
+            float max = float.NegativeInfinity;
+            GravityObject relative = null;
+            foreach (GravityObject obj in FindObjectsOfType<GravityObject>()) {
+                if (obj.gameObject == planet.gameObject)
+                    continue;
+                
+                float f = obj.GetAccelerationAt(planet.transform.position, out Vector3 unused);
+                if (f > max) {
+                    max = f;
+                    relative = obj;
+                }
+            }
+
+            if (relative != null) {
+
+                // In order to 'guess' our orbit relative to our parent, we determine
+                // the force of gravity and the centripetal force to match
+                Vector3 direction = relative.transform.position - planet.transform.position;
+                float velocity = Mathf.Sqrt(Universe.gravitationalConstant * relative.mass / direction.magnitude);
+                
+                // Choose which direction to go in
+                Vector3 vector = planet.GetComponent<GravityObject>().velocity;
+                if (vector == Vector3.zero)
+                    vector = Vector3.Cross(direction.normalized, Vector3.up);
+
+                planet.GetComponent<GravityObject>().velocity = vector.normalized * velocity;
+            }
+        }
+
         DrawSettingsEditor(planet.terrain, UpdateTerrain, ref collapseTerrain, ref terrainEditor);
         DrawSettingsEditor(planet.biomes, UpdateBiomes, ref collapseBiomes, ref biomesEditor);
         DrawSettingsEditor(planet.atmosphere, UpdateAtmosphere, ref collapseAtmosphere, ref atmosphereEditor);
     }
 
-    void DrawSettingsEditor(Object settings, System.Action updateMethod, ref bool foldout, ref Editor editor)
-    {
+    void DrawSettingsEditor(Object settings, System.Action updateMethod, ref bool foldout, ref Editor editor) {
         if (settings == null)
             return;
 
@@ -54,11 +83,11 @@ public class PlanetEditor : Editor {
 
     private void UpdateTerrain() {
         planet.Init();
-        planet.GenerateMesh();
+        planet.GenerateMeshes();
     }
 
     private void UpdateBiomes() {
-        
+        planet.biomes.UpdateShader();
     }
 
     private void UpdateAtmosphere() {
@@ -77,8 +106,6 @@ public class PlanetEditor : Editor {
         window.position = new Rect(Screen.width / 2f, Screen.height / 2f, 500, 300);
         window.ShowPopup();
     }
-
-
 }
 
 public class PlanetPopup : EditorWindow {
@@ -113,7 +140,6 @@ public class PlanetPopup : EditorWindow {
             obj.transform.position = new Vector3(-distance, 0f, 0f);// todo randomize start
 
             if (attemptStableOrbit) {
-
                 obj.transform.position += parent.transform.position;
 
                 // In order to 'guess' our orbit relative to our parent, we determine

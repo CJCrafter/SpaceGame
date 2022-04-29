@@ -32,7 +32,7 @@ public class Universe : MonoBehaviour {
         }
     }
     
-    void Update()
+    void FixedUpdate()
     {
         foreach (GravityObject obj in hasGravity) {
             if (!obj.gameObject.activeInHierarchy)

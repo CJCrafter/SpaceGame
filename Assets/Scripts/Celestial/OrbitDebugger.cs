@@ -11,6 +11,7 @@ public class OrbitDebugger : MonoBehaviour {
 
     private class FakePlanet {
         internal string name;
+        internal GameObject gameObject;
         internal Vector3 position;
         internal Vector3 velocity;
         internal float mass;
@@ -19,7 +20,8 @@ public class OrbitDebugger : MonoBehaviour {
         internal Color color; 
 
         internal FakePlanet(GravityObject obj) {
-            name = "Fake " + obj.name;
+            name = obj.name;
+            gameObject = obj.gameObject;
             position = obj.transform.position;
             velocity = obj.velocity;
             mass = obj.mass;
@@ -30,7 +32,32 @@ public class OrbitDebugger : MonoBehaviour {
                 color = colorMap[name];
             else
                 color = colorMap[name] = colors[Random.Range(0, colors.Length - 1)];
+        }
 
+        internal FakePlanet(ForceEntity obj) {
+            name = obj.name;
+            gameObject = obj.gameObject;
+            position = obj.transform.position;
+            velocity = obj.GetComponent<Rigidbody>().velocity;
+            mass = obj.mass;
+            hasGravity = false;
+            usesGravity = true;
+            
+            if (colorMap.ContainsKey(name))
+                color = colorMap[name];
+            else
+                color = colorMap[name] = colors[Random.Range(0, colors.Length - 1)];
+        }
+
+        internal void Update() {
+            GravityObject temp = gameObject.GetComponent<GravityObject>();
+            position = gameObject.transform.position;
+            velocity = temp == null ? gameObject.GetComponent<Rigidbody>().velocity : temp.velocity;
+            mass = temp == null ? gameObject.GetComponent<ForceEntity>().mass : temp.mass;
+            if (temp != null) {
+                hasGravity = temp.hasGravity;
+                usesGravity = temp.usesGravity;
+            }
         }
     }
 
@@ -39,27 +66,37 @@ public class OrbitDebugger : MonoBehaviour {
     private static Color[] colors =
         {
             Color.blue, Color.cyan, Color.gray, Color.green, Color.magenta, Color.red, Color.yellow, 
-            new Color(1f, 1f, 0f), new Color(0.5f, 0f, 1f)
+            new Color(1f, 0.5f, 0f), new Color(0.5f, 0f, 1f)
         };
 
-    [Min(0.00001f)]
-    public float timeStep = 60f * 60f;
-    [Min(1)]
-    public int steps = 100;
+    [Min(1f)] public float ticksPerStep = 50f;
+    [Min(1)] public int steps = 100;
 
-    public bool show = true;
-    public bool regenerate = true;
+    public bool showPlanets = true;
+    public bool showEntities = true;
     public GravityObject relative;
 
+    private Universe universe;
+    private FakePlanet relativeCache;
     private List<FakePlanet> planets;
+    private float lastUpdate;
+    
+    // This is just good information to display
     public List<string> planetNames;
+    public List<string> entityNames;
 
     public void Init() {
+        
+        // Cache universe
+        universe = FindObjectOfType<Universe>();
+        if (universe == null)
+            throw new MissingUniverseException();
 
         // Start by clearing out old planets
         planets = new List<FakePlanet>();
         planetNames = new List<string>();
-
+        entityNames = new List<string>();
+        
         // We need to wrap each planet it a "FakePlanet" so we
         // don't accidentally modify an existing planet.
         foreach (GravityObject obj in FindObjectsOfType<GravityObject>()) {
@@ -67,25 +104,38 @@ public class OrbitDebugger : MonoBehaviour {
             planets.Add(fake);
             planetNames.Add(fake.name);
         }
+
+        foreach (ForceEntity obj in FindObjectsOfType<ForceEntity>()) {
+            FakePlanet fake = new FakePlanet(obj);
+            planets.Add(fake);
+            entityNames.Add(fake.name);
+        }
     }
 
     private void OnValidate() {
-        Update();
-        regenerate = false;
-    }
-
-    private void Update() {
         Init();
+        relativeCache = planets.Where(planet => planet.gameObject == relative.gameObject).GetEnumerator().Current;
         ShowOrbits();
     }
 
+    private void Update() {
+        if (universe == null || Time.timeSinceLevelLoad > lastUpdate + 3f)
+            ShowOrbits();
+    }
+
     public void ShowOrbits() {
-        if (!show || planets == null || !planets.Any())
+        if (!showEntities && !showPlanets)
             return;
 
-        Universe universe = FindObjectOfType<Universe>();
-        if (universe == null)
-            throw new MissingUniverseException();
+        // First check if we need to initialize our lists. Afterwards we need to 
+        // update the "fake" variables to make their positions and velocities are
+        // true to where the planets currently are.
+        if (universe == null || planets == null)
+            Init();
+
+        foreach (var planet in planets) {
+            planet.Update();
+        }
 
         // In order to draw our lines, we need to save the previous point for
         // each planet. This is updated for each step.
@@ -112,38 +162,28 @@ public class OrbitDebugger : MonoBehaviour {
     }
 
     public Vector3 GetRelativeVector() {
-        if (relative == null)
-            return Vector3.zero;
-
-        string target = "Fake " + relative.gameObject.name;
-        foreach (FakePlanet planet in planets) {
-            if (planet.name == target)
-                return planet.position;
-        }
-
-        throw new Exception("Cannot find: " + target);
+        return relativeCache?.position ?? Vector3.zero;
     }
 
     private void SimulateGravity() {
-        foreach (FakePlanet planet in planets)
-        {
-            if (!planet.usesGravity)
+        foreach (FakePlanet gravityEmitter in planets) {
+            if (!gravityEmitter.hasGravity)
                 continue;
 
-            foreach (FakePlanet gravityEmitter in planets) {
-                if (!gravityEmitter.hasGravity)
+            foreach (FakePlanet planet in planets) {
+                if (!planet.usesGravity)
                     continue;
-
+                
                 Vector3 direction = gravityEmitter.position - planet.position;
 
                 float distanceSquared = direction.sqrMagnitude;
                 if (distanceSquared == 0.0f)
                     continue;
 
-                float force = Universe.gravitationalConstant * (planet.mass * gravityEmitter.mass) / distanceSquared;
+                float force = Universe.gravitationalConstant * gravityEmitter.mass / distanceSquared;
 
                 direction.Normalize();
-                direction *= force / planet.mass * timeStep;
+                direction *= force * Time.fixedDeltaTime * ticksPerStep;
                 planet.velocity += direction;
             }
         }
@@ -151,7 +191,7 @@ public class OrbitDebugger : MonoBehaviour {
 
     private void SimulateMovement() {
         foreach (FakePlanet planet in planets) {
-            planet.position += planet.velocity * timeStep;
+            planet.position += planet.velocity * Time.fixedDeltaTime * ticksPerStep;
         }
     }
 }

@@ -18,7 +18,7 @@ public class PlayerShip : Ship {
         
         float yaw = -Input.GetAxis("Yaw") * rate;
         float pitch = Input.GetAxis("Pitch") * rate;
-        float roll = Input.GetAxis("Roll") * rate;
+        float roll = -Input.GetAxis("Roll") * rate;
         
         Quaternion rotation = Quaternion.Euler(yaw, pitch, roll);
         transform.localRotation *= rotation;
