@@ -16,10 +16,10 @@ public class NoiseSettings
     // We want to be able to layer noises together
     // with a decreasing magnitude in order to get fine
     // details without losing the spherical shape
-    [Range(1, 8)]
+    [UnityEngine.Range(1, 8)]
     public int layers = 1;
     public float baseRoughness = 1f;
-    [Range(0f, 1f)]
+    [UnityEngine.Range(0f, 1f)]
     public float persistence = 0.5f;
 
     [ConditionalHide("type", 1)]

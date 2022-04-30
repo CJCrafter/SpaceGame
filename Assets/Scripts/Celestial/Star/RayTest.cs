@@ -6,8 +6,8 @@ public class RayTest : MonoBehaviour {
     
     public Color color;
     public float distance;
-    [Range(0, 1)] public float longitude;
-    [Range(0, 1)] public float latitude;
+    [UnityEngine.Range(0, 1)] public float longitude;
+    [UnityEngine.Range(0, 1)] public float latitude;
 
     public Color intended;
     public Color sampled;

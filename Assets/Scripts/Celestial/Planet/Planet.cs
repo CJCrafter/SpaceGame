@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class Planet : MonoBehaviour {
@@ -24,7 +23,7 @@ public class Planet : MonoBehaviour {
     // to save resources. 
     [SerializeField, HideInInspector] 
     private Mesh[] LODS;
-    private Camera camera;
+    private new Camera camera;
     public readonly MinMax elevationBounds = new MinMax();
     
     public void Init() {
@@ -87,6 +86,9 @@ public class Planet : MonoBehaviour {
     }
 
     public int GetCurrentLOD() {
+        if (camera == null)
+            camera = Camera.main;
+        
         float distance = MathUtil.Distance(camera.transform.position, transform.position);
         float maxDistance = radius * lodMultiplier;
         distance = Mathf.Clamp(distance, 0, maxDistance);

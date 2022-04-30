@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 public class Stars : MonoBehaviour {
     
     public int seed;
-    [Range(1, 8)] public int resolution;
+    [UnityEngine.Range(1, 8)] public int resolution;
     [Min(0)] public int stars = 6000;
     [Min(0f)] public float distance = 100000;
     public AnimationCurve selector;
