@@ -5,14 +5,21 @@ using UnityEngine.Rendering;
 public class Stars : MonoBehaviour {
     
     public int seed;
-    [UnityEngine.Range(1, 8)] public int resolution;
+    [Range(1, 8)] public int resolution;
     [Min(0)] public int stars = 6000;
     [Min(0f)] public float distance = 100000;
     public AnimationCurve selector;
-    public Vector2 sizeRange = new Vector2(120f, 220f);
-    public Vector2 brightnessRange = new Vector2(1.0f, 2.0f);
+    [Bounds(0f, 1f)] public Range brightness;
+    [Bounds(0f, 1000f)] public Range size;
     public Gradient gradient;
 
+    // Used to handle 'white dwarf' and 'red giant' stars
+    [Range(0f, 1f)] public float whiteDwarfSize;
+    [Range(0f, 1f)] public float whiteDwarfChance;
+    [Range(0f, 1f)] public float redGiantSize;
+    [Range(0f, 1f)] public float redGiantChance;
+    [Min(1f)] public float redGiantMultiplier;
+    
     public ComputeShader compute;
     [HideInInspector] public RenderTexture target;
     private ComputeBuffer buffer;
@@ -100,12 +107,25 @@ public class Stars : MonoBehaviour {
     }
 
     private StarData GenerateSettings() {
-        float val = selector.Evaluate(Random.value);
+        float val = Random.value; // selector.Evaluate(Random.value);
 
+        float brightness = this.brightness.Lerp(val);
+        float radius = size.Lerp(val);
+        
+        // Handle 'white dwarf' and 'red giant' special cases. Big
+        // stars have a small chance to become a red giant, and small
+        // stars have a medium chance to become a white dwarf. Red giants
+        // additionally have their size multiplied since they tend to be
+        // MUCH LARGER then average stars. 
         float time = val;
-        float brightness = Random.value * (brightnessRange.y - brightnessRange.x) + brightnessRange.x;
-        float radius = val * (sizeRange.y - sizeRange.x) + sizeRange.x;
-
+        if (radius < whiteDwarfSize && Random.value < whiteDwarfChance) {
+            time = 0.5f; // white
+        }
+        else if (radius > redGiantSize && Random.value < redGiantChance) {
+            radius *= redGiantMultiplier;
+            time = 0.0f; // red
+        }
+        
         return new StarData
             {
                 position = Random.onUnitSphere * distance,
