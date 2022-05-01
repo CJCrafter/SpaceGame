@@ -8,8 +8,8 @@ public class Engine : MonoBehaviour {
     public new Light light;
     public AudioClip sound;
     public bool play;
-    [SerializeField, RangeAttribute(0f, 1f)] public Range volume;
-    [SerializeField, RangeAttribute(0f, 1f)] public Range pitch;
+    [SerializeField, Bounds(0f, 1f)] public Range volume;
+    [SerializeField, Bounds(0f, 1f)] public Range pitch;
 
     private AudioSource audio;
     
