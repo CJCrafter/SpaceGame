@@ -1,6 +1,4 @@
-﻿using System;
-using MK.Glow;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 [System.Serializable]
@@ -19,25 +17,25 @@ public class Range {
     }
 }
 
-public sealed class RangeAttribute : PropertyAttribute {
+public sealed class BoundsAttribute : PropertyAttribute {
     
-    public float min;
-    public float max;
+    public readonly float min;
+    public readonly float max;
 
-    public RangeAttribute(float min, float max) {
+    public BoundsAttribute(float min, float max) {
         this.min = min;
         this.max = max;
     }
 }
 
-[CustomPropertyDrawer(typeof(RangeAttribute))]
+[CustomPropertyDrawer(typeof(BoundsAttribute))]
 public class RangeDrawer : PropertyDrawer {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-        RangeAttribute range = attribute as RangeAttribute;
+        BoundsAttribute bounds = attribute as BoundsAttribute;
         var target = property.serializedObject.targetObject;
         Range value = fieldInfo.GetValue(target) as Range;
         
-        EditorGUI.MinMaxSlider(position, label, ref value.min, ref value.max, range.min, range.max);
+        EditorGUI.MinMaxSlider(position, label, ref value.min, ref value.max, bounds.min, bounds.max);
         
         fieldInfo.SetValue(target, value);
     }
