@@ -16,7 +16,7 @@ public class StarsMesh : MonoBehaviour {
     public int stars = 100;
     [Min(0f)]
     public float distance = 10000;
-    [UnityEngine.Range(0, 10)] 
+    [Range(0, 10)] 
     public int vertexCount = 5;
     public AnimationCurve selector;
     public Vector2 sizeRange = new Vector2(0.5f, 1.5f);

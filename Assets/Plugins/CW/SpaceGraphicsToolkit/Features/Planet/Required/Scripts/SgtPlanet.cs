@@ -453,7 +453,7 @@ namespace SpaceGraphicsToolkit
 			{
 				Separator();
 
-				if (HelpButton("This material has water, but you have no WaterGradient component.", UnityEditor.MessageType.Info, "Fix", 50) == true)
+				if (HelpButton("This material has water, but you have no WaterGradient component.", MessageType.Info, "Fix", 50) == true)
 				{
 					Each(tgts, t => CwHelper.GetOrAddComponent<SgtPlanetWaterGradient>(t.gameObject));
 				}
@@ -463,7 +463,7 @@ namespace SpaceGraphicsToolkit
 			{
 				Separator();
 
-				if (HelpButton("This material has water, but you have no WaterTexture component.", UnityEditor.MessageType.Info, "Fix", 50) == true)
+				if (HelpButton("This material has water, but you have no WaterTexture component.", MessageType.Info, "Fix", 50) == true)
 				{
 					Each(tgts, t => CwHelper.GetOrAddComponent<SgtPlanetWaterTexture>(t.gameObject));
 				}

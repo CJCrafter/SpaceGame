@@ -10,7 +10,7 @@ public class CameraMover : MonoBehaviour
         public Quaternion rotation;
     }
 
-    [UnityEngine.Range(0f, 10f)]
+    [Range(0f, 10f)]
     public float dragSpeed = 2f;
 
     [HideInInspector, SerializeField]

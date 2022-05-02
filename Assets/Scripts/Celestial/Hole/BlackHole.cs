@@ -9,8 +9,8 @@ public class BlackHole : MonoBehaviour {
     [Min(0)] public float step = 5f;
     [Min(0)] public int maxSteps = 1000;
     [Min(0)] public float accretionWidth;
-    [UnityEngine.Range(0, 1)] public float accretionMin;
-    [UnityEngine.Range(0, 1)] public float accretionMax;
+    [Range(0, 1)] public float accretionMin;
+    [Range(0, 1)] public float accretionMax;
     public float accretionSpin;
     public Texture accretionTexture;
     public Vector3 accretionDiskBrightness;

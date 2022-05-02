@@ -111,7 +111,7 @@ namespace SpaceGraphicsToolkit
 		// Find the camera attached to a specific camera, if it exists
 		public static bool TryFind(Camera unityCamera, ref SgtCamera foundCamera)
 		{
-			foreach (var camera in SgtCamera.Instances)
+			foreach (var camera in Instances)
 			{
 				if (camera.CachedCamera == unityCamera)
 				{

@@ -135,7 +135,7 @@ namespace SpaceGraphicsToolkit
 
 		public static Mesh CreateTempMesh(string meshName)
 		{
-			var mesh = SgtCommon.MeshPool.Count > 0 ? SgtCommon.MeshPool.Pop() : new Mesh();
+			var mesh = MeshPool.Count > 0 ? MeshPool.Pop() : new Mesh();
 
 			mesh.name      = meshName;
 			mesh.hideFlags = HideFlags.DontSave;

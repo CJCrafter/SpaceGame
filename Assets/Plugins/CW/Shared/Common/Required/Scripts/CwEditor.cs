@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace CW.Common
 {
 	/// <summary>This is the base class for all inspectors.</summary>
-	public abstract class CwEditor : UnityEditor.Editor
+	public abstract class CwEditor : Editor
 	{
 		private static Stack<object> datas = new Stack<object>();
 
@@ -154,7 +154,7 @@ namespace CW.Common
 			return GUILayout.Button(text);
 		}
 
-		public static bool HelpButton(string helpText, UnityEditor.MessageType type, string buttonText, float buttonWidth)
+		public static bool HelpButton(string helpText, MessageType type, string buttonText, float buttonWidth)
 		{
 			var clicked = false;
 

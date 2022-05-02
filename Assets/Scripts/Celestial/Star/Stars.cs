@@ -40,7 +40,7 @@ public class Stars : MonoBehaviour {
 
         if (buffer == null || buffer.count != stars) {
             buffer?.Release();
-            buffer = new ComputeBuffer(this.stars, 4 * 6);
+            buffer = new ComputeBuffer(stars, 4 * 6);
         }
 
         if (skybox == null) {

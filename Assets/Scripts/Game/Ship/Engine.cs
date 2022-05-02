@@ -3,7 +3,7 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class Engine : MonoBehaviour {
 
-    [UnityEngine.Range(0f, 1f)] public float current = 1f;
+    [Range(0f, 1f)] public float current = 1f;
     public ParticleSystem particles;
     public new Light light;
     public AudioClip sound;

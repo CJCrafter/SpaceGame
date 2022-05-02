@@ -106,7 +106,7 @@ namespace SpaceGraphicsToolkit
 			
 			if (Any(tgts, t => t.CachedLight.type != LightType.Directional))
 			{
-				if (HelpButton("The attached light isn't set to be directional.", UnityEditor.MessageType.Warning, "Fix", 30.0f) == true)
+				if (HelpButton("The attached light isn't set to be directional.", MessageType.Warning, "Fix", 30.0f) == true)
 				{
 					Each(tgts, t => t.CachedLight.type = LightType.Directional);
 				}

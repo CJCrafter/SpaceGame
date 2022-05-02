@@ -63,13 +63,13 @@ namespace CW.Common
 
 			if (found == false)
 			{
-				CwEditor.Separator();
+				Separator();
 
 				if (Camera.main != null)
 				{
 					if (WritesDepth(Camera.main) == false)
 					{
-						if (CwEditor.HelpButton("This component requires your camera to render a Depth Texture, but it doesn't.", UnityEditor.MessageType.Error, "Fix", 50.0f) == true)
+						if (HelpButton("This component requires your camera to render a Depth Texture, but it doesn't.", MessageType.Error, "Fix", 50.0f) == true)
 						{
 							CwHelper.GetOrAddComponent<CwDepthTextureMode>(Camera.main.gameObject).DepthMode = DepthTextureMode.Depth;
 
@@ -79,7 +79,7 @@ namespace CW.Common
 				}
 				else
 				{
-					CwEditor.Error("This component requires your camera to render a Depth Texture, but none of the cameras in your scene do. This can be fixed with the SgtDepthTextureMode component.");
+					Error("This component requires your camera to render a Depth Texture, but none of the cameras in your scene do. This can be fixed with the SgtDepthTextureMode component.");
 
 					foreach (var camera in Camera.allCameras)
 					{

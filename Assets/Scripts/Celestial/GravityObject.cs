@@ -27,7 +27,7 @@ public class GravityObject : MonoBehaviour {
 
     public void ApplyGravity() {
         foreach (GravityObject planet in universe.hasGravity) {
-            if (planet.gameObject == this.gameObject)
+            if (planet.gameObject == gameObject)
                 continue;
             
             planet.GetAccelerationAt(transform.position, out Vector3 direction);

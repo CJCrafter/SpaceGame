@@ -147,8 +147,8 @@ namespace CW.Common
 		[InitializeOnLoadMethod]
 		private static void RegisterAutoSwitch()
 		{
-			UnityEditor.EditorApplication.delayCall -= AutoSwitch;
-			UnityEditor.EditorApplication.delayCall += AutoSwitch;
+			EditorApplication.delayCall -= AutoSwitch;
+			EditorApplication.delayCall += AutoSwitch;
 
 			AssetDatabase.importPackageCompleted -= ForceSwitch;
 			AssetDatabase.importPackageCompleted += ForceSwitch;
@@ -172,12 +172,12 @@ namespace CW.Common
 				lastAutoSetPipe = pipe;
 
 				var modified = false;
-				var guids    = UnityEditor.AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
+				var guids    = AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
 
 				foreach (var guid in guids)
 				{
-					var path   = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-					var bundle = UnityEditor.AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
+					var path   = AssetDatabase.GUIDToAssetPath(guid);
+					var bundle = AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
 
 					if (bundle != null && bundle.variantHash != 0)
 					{
@@ -225,8 +225,8 @@ namespace CW.Common
 				}
 			}
 
-			UnityEditor.EditorApplication.delayCall -= AutoSwitch;
-			UnityEditor.EditorApplication.delayCall += AutoSwitch;
+			EditorApplication.delayCall -= AutoSwitch;
+			EditorApplication.delayCall += AutoSwitch;
 	#endif
 		}
 
@@ -359,21 +359,21 @@ namespace CW.Common
 				{
 					if (variant.Pipe == pipe)
 					{
-						var path = UnityEditor.AssetDatabase.GetAssetPath(target);
+						var path = AssetDatabase.GetAssetPath(target);
 
 						// Already up to date?
 						if (System.IO.File.ReadAllText(path) != variant.Code)
 						{
 							System.IO.File.WriteAllText(path, variant.Code);
 
-							UnityEditor.AssetDatabase.ImportAsset(path);
+							AssetDatabase.ImportAsset(path);
 
-							UnityEditor.Undo.RecordObject(this, "Switching Pipeline");
+							Undo.RecordObject(this, "Switching Pipeline");
 
 							variantHash = variant.Hash;
 							projectHash = GetProjectHash();
 
-							UnityEditor.EditorUtility.SetDirty(this);
+							EditorUtility.SetDirty(this);
 
 							return true;
 						}
@@ -388,12 +388,12 @@ namespace CW.Common
 
 		public static void TrySwitchAllTo(Pipeline pipe)
 		{
-			var guids = UnityEditor.AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
+			var guids = AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
 
 			foreach (var guid in guids)
 			{
-				var path   = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-				var bundle = UnityEditor.AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
+				var path   = AssetDatabase.GUIDToAssetPath(guid);
+				var bundle = AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
 
 				if (bundle != null)
 				{
@@ -512,14 +512,14 @@ namespace CW.Common
 		{
 			EditorGUILayout.LabelField("All Shaders In Project", EditorStyles.boldLabel);
 
-			var guids = UnityEditor.AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
+			var guids = AssetDatabase.FindAssets("t:" + typeof(CwShaderBundle).Name);
 			var color = GUI.color;
 
 			EditorGUI.BeginDisabledGroup(true);
 				foreach (var guid in guids)
 				{
-					var path   = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-					var bundle = UnityEditor.AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
+					var path   = AssetDatabase.GUIDToAssetPath(guid);
+					var bundle = AssetDatabase.LoadAssetAtPath<CwShaderBundle>(path);
 
 					if (bundle != null)
 					{
