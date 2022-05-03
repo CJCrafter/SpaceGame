@@ -15,7 +15,7 @@ public class ForceEntity : MonoBehaviour {
     protected Universe universe;
     protected GravityObject strongestGravity;
 
-    protected Rigidbody body;
+    public Rigidbody body;
     protected float volume;
     
     protected virtual void Start() {

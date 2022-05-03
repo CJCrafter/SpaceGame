@@ -16,7 +16,7 @@ public class Phaser : MonoBehaviour {
     [Header("Beam Options")] public float distance = 100; //Ingame beam length
     
     
-    void FixedUpdate() {
+    void Update() {
         if (!beam) 
             return;
         
