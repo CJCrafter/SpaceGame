@@ -47,6 +47,7 @@ public class Ship : ForceEntity {
         phasers = transform.GetComponentsInChildren<Phaser>();
         launchers = transform.GetComponentsInChildren<Launcher>();
 
+        maxHealth = health;
         _hotbar = 1;
     }
 
@@ -67,26 +68,16 @@ public class Ship : ForceEntity {
     }
     
     public void FireWeapon() {
-        switch (hotbar) {
-
-            case HOTBAR_LASER: {
-                if (wasFiring)
-                    break;
-                
-                foreach (Phaser phaser in phasers) {
-                    phaser.RemoveBeam();
-                    phaser.SpawnBeam();
-                }
-                
-                break;
+        if (hotbar == HOTBAR_LASER && !wasFiring) {
+            foreach (Phaser phaser in phasers) {
+                phaser.RemoveBeam();
+                phaser.SpawnBeam();
             }
-
-            case HOTBAR_MISSILE: {
-                foreach (Launcher launcher in launchers) {
-                    launcher.Fire();
-                }
-
-                break;
+        }
+        
+        else if (hotbar != HOTBAR_LASER) {
+            foreach (Launcher launcher in launchers) {
+                launcher.Fire();
             }
         }
     }

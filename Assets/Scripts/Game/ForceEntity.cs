@@ -1,84 +1,38 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.Rendering.PostProcessing;
 using UnityEngine;
 
+[RequireComponent(typeof(LineRenderer))]
 [RequireComponent(typeof(Rigidbody))]
 public class ForceEntity : MonoBehaviour {
 
     public float dragCoefficient = 0.75f;
     public float mass = 136078f; // mass of fully loaded starship
     public bool debugForces;
+    public bool showOrbit;
     
     public Vector3 localUp => (transform.position - strongestGravity.transform.position).normalized;
-
-    [SerializeField, HideInInspector] private float[,,] crossSectionLookup;
-    [SerializeField, HideInInspector] private Mesh mesh;
+    public OrbitalData orbit;
+    
     protected Universe universe;
+    protected LineRenderer orbitDrawer;
     protected GravityObject strongestGravity;
-
-    public Rigidbody body;
-    protected float volume;
+    [SerializeReference] private MeshData mesh;
+    [HideInInspector] public Rigidbody body;
     
     protected virtual void Start() {
         universe = FindObjectOfType<Universe>();
+        orbitDrawer = GetComponent<LineRenderer>();
         body = GetComponent<Rigidbody>();
-        if (FindObjectOfType<MeshFilter>() != null) {
-            Mesh shared = FindObjectOfType<MeshFilter>().sharedMesh;
+        orbit = new OrbitalData(this);
 
-            if (mesh != shared) {
-                crossSectionLookup = null;
-                mesh = shared;
-            }
-            
-            volume = MeshUtil.CalculateVolume(mesh);
-            Debug.Log("Calculated " + volume + " for volume");
-        }
-
-        
-        float furthestPoint = mesh.bounds.extents.magnitude;
-        crossSectionLookup ??= new float[3, 3, 3];
-        
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
-                for (int z = -1; z <= 1; z++) {
-                    if (x == 0 && y == 0 && z == 0)
-                        continue;
-
-                    // Form an axis using 3 perpendicular vectors
-                    Vector3 direction = -new Vector3(x, y, z).normalized;
-                    Vector3 a = Vector3.Cross(direction, new Vector3(-2, 7, -13).normalized).normalized;
-                    Vector3 b = Vector3.Cross(direction, a).normalized;
-                    
-                    // Loop through 'horizontally' and 'vertically' and ray
-                    // trace. Total up all positive hits to estimate the area.
-                    int total = 0;
-                    const int detail = 16;
-                    float step = furthestPoint / detail;
-                    for (int i = -detail; i < detail; i++) {
-                        for (int j = -detail; j < detail; j++) {
-
-                            // 'o' is short for origin. 
-                            Vector3 o = transform.position + a * i * step + b * j * step - direction * furthestPoint;
-                            Physics.Raycast(new Ray(o, direction), out RaycastHit hit, furthestPoint * 2f);
-                            bool collides = hit.collider != null && hit.collider.gameObject == gameObject;
-                            //if (x == 1 && y == 1 && z == 1)
-                            //    Debug.DrawRay(o, direction * furthestPoint * 2f, collides ? Color.green : Color.red, 100);
-                            
-                            if (!collides)
-                                continue;
-
-                            total++;
-                        }
-                    }
-                    
-                    // This multiplier should be proportional to 'furthestPoint'.
-                    // It helps us to determine the conversion rate between pixels
-                    // and meters. 
-                    float multiplier = furthestPoint;
-                    crossSectionLookup[x + 1, y + 1, z + 1] = (float) total / (detail * detail) * multiplier;
-                    Debug.Log("Calculated " + crossSectionLookup[x + 1, y + 1, z + 1] + " for " + direction);
-                }   
-            }
-        }
+        mesh ??= new MeshData(this);
+        mesh.Init();
+        var obj = new SerializedObject(this);
+        obj.FindProperty("mesh").managedReferenceValue = mesh;
+        obj.ApplyModifiedProperties();
     }
     
     private void FixedUpdate() {
@@ -131,8 +85,7 @@ public class ForceEntity : MonoBehaviour {
         Vector3 velocity = body.velocity;
         Vector3 force = new Vector3(velocity.x * velocity.x, velocity.y * velocity.y, velocity.z * velocity.z);
 
-        Vector3 n = force.normalized;
-        float area = crossSectionLookup[Mathf.RoundToInt(n.x) + 1, Mathf.RoundToInt(n.y) + 1, Mathf.RoundToInt(n.z) + 1];
+        float area = mesh.Area(force.normalized);
         force *= 0.5f * CalculateDensity() * dragCoefficient * area * Time.fixedDeltaTime;
         
         // Make sure the drag is opposite to motion
@@ -157,7 +110,7 @@ public class ForceEntity : MonoBehaviour {
      */
     public Vector3 CalculateBuoyancy() {
         float g = strongestGravity.GetAccelerationAt(transform.position, out Vector3 unused);
-        return localUp * CalculateDensity() * g * volume * Time.fixedDeltaTime;
+        return localUp * CalculateDensity() * g * mesh.volume * Time.fixedDeltaTime;
     }
 
     public float CalculateDensity() {
@@ -204,5 +157,150 @@ public class ForceEntity : MonoBehaviour {
 
     public virtual Vector3 CalculateThrust() {
         return Vector3.zero;
+    }
+
+    public class OrbitalData {
+
+        private ForceEntity root;
+        private List<Vector3> _points;
+
+        internal OrbitalData(ForceEntity root) {
+            this.root = root;
+        }
+
+        public List<Vector3> points {
+            get => _points;
+            set {
+                orbit = MathUtil.SquareDistance(_points[0], _points[^1]) < 25f;
+                sampleTime = Time.timeSinceLevelLoad;
+            }
+        }
+
+        public bool orbit {
+            get;
+            private set;
+        }
+
+        public bool escape => !orbit;
+
+        public float sampleTime {
+            get;
+            private set;
+        }
+
+        public void Show() {
+            
+        }
+    }
+    
+    [Serializable]
+    public class MeshData {
+
+        [SerializeField] private ForceEntity root;
+        [SerializeField] private string meshName;
+        [SerializeField] private bool calculated;
+        [SerializeField] public float volume;
+        [SerializeField] public float[] areas; // 3x3x3 box array, unwrapped
+        
+        public MeshData(ForceEntity root) {
+            Debug.Log("First time!");
+            Mesh mesh = root.GetComponent<MeshFilter>()?.sharedMesh;
+            if (mesh == null)
+                throw new Exception(root.name + " missing mesh");
+
+            this.root = root;
+            this.meshName = mesh.name;
+            this.areas = new float[3 * 3 * 3];
+        }
+
+        public void Init() {
+            Mesh mesh = root.GetComponent<MeshFilter>()?.sharedMesh;
+            if (mesh == null)
+                throw new Exception(root.name + " missing mesh");
+
+            // Make sure to skip calculations, so long as they are up to date.
+            // If the name of the mesh changes, we know we need to recalculate.
+            if (calculated && meshName == mesh.name)
+                return;
+
+            float startTime = Time.realtimeSinceStartup;
+            float furthestPoint = mesh.bounds.extents.magnitude;
+            volume = MeshUtil.CalculateVolume(mesh);
+            
+            for (int x = -1; x <= 1; x++) {
+                for (int y = -1; y <= 1; y++) {
+                    for (int z = -1; z <= 1; z++) {
+                        if (x == 0 && y == 0 && z == 0)
+                            continue;
+
+                        // Form an axis using 3 perpendicular vectors
+                        Vector3 direction = -new Vector3(x, y, z).normalized;
+                        Vector3 a = Vector3.Cross(direction, new Vector3(-2, 7, -13).normalized).normalized;
+                        Vector3 b = Vector3.Cross(direction, a).normalized;
+
+                        // Loop through 'horizontally' and 'vertically' and ray
+                        // trace. Total up all positive hits to estimate the area.
+                        int total = 0;
+                        const int detail = 32;
+                        float step = furthestPoint / detail;
+                        for (int i = -detail; i < detail; i++) {
+                            for (int j = -detail; j < detail; j++) {
+
+                                // 'o' is short for origin. 
+                                Vector3 o = root.transform.position + a * i * step + b * j * step -
+                                            direction * furthestPoint;
+                                Physics.Raycast(new Ray(o, direction), out RaycastHit hit, furthestPoint * 2f);
+                                bool collides = hit.collider != null && hit.collider.gameObject == root.gameObject;
+                                //if (x == 1 && y == 1 && z == 1)
+                                //    Debug.DrawRay(o, direction * furthestPoint * 2f, collides ? Color.green : Color.red, 100);
+
+                                if (!collides)
+                                    continue;
+
+                                total++;
+                            }
+                        }
+                        
+                        // We need to multiply by the size of each pixel (Which should
+                        // be 'step', but this requires verification).
+                        float multiplier = step * step;
+                        areas[(z + 1) * 9 + (y + 1) * 3 + (x + 1)] = total * multiplier;
+                        //Debug.Log("Calculated " + crossSectionLookup[x + 1, y + 1, z + 1] + " for " + direction);
+                    }
+                }
+            }
+
+            calculated = true;
+            Debug.Log("Took " + (Time.realtimeSinceStartup - startTime) + "s to calculate " + mesh.name + " properties.");
+            Debug.Log("  Volume: " + volume);
+            Debug.Log("  Areas: " + areas);
+        }
+        
+        public float Area(Vector3 direction) {
+            int x1 = Mathf.FloorToInt(direction.x);
+            int x2 = Mathf.CeilToInt(direction.x);
+            int y1 = Mathf.FloorToInt(direction.y);
+            int y2 = Mathf.CeilToInt(direction.y);
+            int z1 = Mathf.FloorToInt(direction.z);
+            int z2 = Mathf.CeilToInt(direction.z);
+            
+            // Now we need to check each the 4 points involved and determine
+            // their weights.
+            float total = 0f;
+            for (int x = x1; x < x2; x++) {
+                for (int y = y1; y < y2; y++) {
+                    for (int z = z1; z < z2; z++) {
+                        if (x == 0 && y == 0 && z == 0)
+                            continue;
+
+                        float distance = MathUtil.Distance(x - direction.x, y - direction.y, z - direction.z);
+                        float weight = 1 - distance;
+                        total += areas[(z + 1) * 9 + (y + 1) * 3 + (x + 1)] * weight;
+                    }
+                }    
+            }
+
+            return total;
+        }
     }
 }

@@ -2,6 +2,14 @@
 
 public class MathUtil {
 
+    public static float Sq(float a) {
+        return a * a;
+    }
+
+    public static float Distance(float dx, float dy, float dz) {
+        return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
     public static float SquareDistance(Vector3 a, Vector3 b) {
         float dx = a.x - b.x;
         float dy = a.y - b.y;

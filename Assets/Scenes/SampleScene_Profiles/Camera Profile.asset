@@ -80,7 +80,7 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   gradingMode:
     overrideState: 0
     value: 1
@@ -1392,11 +1392,11 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
-  showEditorMainBehavior: 1
-  showEditorBloomBehavior: 1
-  showEditorLensSurfaceBehavior: 1
-  showEditorLensFlareBehavior: 1
-  showEditorGlareBehavior: 1
+  showEditorMainBehavior: 0
+  showEditorBloomBehavior: 0
+  showEditorLensSurfaceBehavior: 0
+  showEditorLensFlareBehavior: 0
+  showEditorGlareBehavior: 0
   isInitialized: 1
   allowGeometryShaders:
     overrideState: 0
@@ -1443,7 +1443,7 @@ MonoBehaviour:
     value: 7
   bloomIntensity:
     overrideState: 1
-    value: 2.89
+    value: 0.25
   allowLensSurface:
     overrideState: 1
     value: 1
@@ -1452,18 +1452,18 @@ MonoBehaviour:
     value: {fileID: 2800000, guid: 9d5e3e34b444a8941956666222fd1659, type: 3}
   lensSurfaceDirtIntensity:
     overrideState: 1
-    value: 2.5
+    value: 0.27
   lensSurfaceDiffractionTexture:
     overrideState: 1
     value: {fileID: 2800000, guid: c7a4475ca89fc4e42affdae13fa5ff85, type: 3}
   lensSurfaceDiffractionIntensity:
     overrideState: 1
-    value: 2
+    value: 0.001
   allowLensFlare:
     overrideState: 1
     value: 1
   lensFlareStyle:
-    overrideState: 0
+    overrideState: 1
     value: 1
   lensFlareGhostFade:
     overrideState: 0
@@ -1507,8 +1507,8 @@ MonoBehaviour:
     overrideState: 0
     value: 0.33
   glareIntensity:
-    overrideState: 0
-    value: 1
+    overrideState: 1
+    value: 1.31
   glareAngle:
     overrideState: 0
     value: 0
@@ -1521,10 +1521,10 @@ MonoBehaviour:
     overrideState: 0
     value: 4
   glareScattering:
-    overrideState: 0
-    value: 2
+    overrideState: 1
+    value: 2.46
   glareStyle:
-    overrideState: 0
+    overrideState: 1
     value: 4
   glareSample0Scattering:
     overrideState: 0

@@ -10,23 +10,64 @@ public class ThreatTable : MonoBehaviour {
     [Range(0f, 2f)] public float distanceWeight;
     
     private Ship ship;
-    private Dictionary<Ship, ThreatData> possibleThreats;
+    private List<ThreatData> _threats;
     private float lastAssessment;
     private float lastSearch;
     private ThreatData _threat;
+
+    public void Init() {
+        if (ship != null)
+            return;
+        
+        ship = GetComponent<Ship>();
+
+        Events.SHIP_SPAWN.AddListener(OnAddShip);
+        Events.SHIP_DESTROY.AddListener(OnRemoveShip);
+        Events.SHIP_DAMAGE.AddListener(OnDamageShip);
+    }
+
+    public void OnAddShip(Events.ShipSpawnEvent e) {
+        Debug.Log("ADDED");
+        if (ship != e.ship)
+            threats.Add(new ThreatData(this, e.ship));
+    }
+
+    public void OnRemoveShip(Events.ShipDestroyEvent e) {
+        threats.RemoveAll(element => element.ship == e.ship);
+    }
+
+    public void OnDamageShip(Events.ShipDamageEvent e) {
+        if (ship != e.damaged || ship == e.damager)
+            return;
+
+        threats.Find(element => element.ship == e.damager).damageReceived += e.totalDamage;
+    }
+    
+    public void Update() {
+        if (Time.timeSinceLevelLoad > lastSearch + 3.0f) {
+            foreach (ThreatData data in threats) {
+                data.Update();
+            }
+
+            lastSearch = Time.timeSinceLevelLoad;
+        }
+    }
+    
     public ThreatData threat {
         get {
-            if (_threat == null || Time.timeSinceLevelLoad > lastAssessment + assessmentInterval) {
-                lastAssessment = Time.timeSinceLevelLoad;
+            if (_threat != null && !(Time.timeSinceLevelLoad > lastAssessment + assessmentInterval)) 
+                return _threat;
+            
+            Init();
+            lastAssessment = Time.timeSinceLevelLoad;
 
-                float max = float.MinValue;
-                _threat = null;
-                foreach (var threat in possibleThreats.Values) {
-                    float threatLevel = threat.Evaluate();
-                    if (threatLevel >= max) {
-                        max = threatLevel;
-                        _threat = threat;
-                    }
+            float max = float.MinValue;
+            _threat = null;
+            foreach (var threat in threats) {
+                float threatLevel = threat.Evaluate();
+                if (threatLevel >= max) {
+                    max = threatLevel;
+                    _threat = threat;
                 }
             }
 
@@ -34,64 +75,50 @@ public class ThreatTable : MonoBehaviour {
         }
     }
 
+    public List<ThreatData> threats {
+        get {
+            if (_threats != null && _threats.Count != 0)
+                return _threats;
 
-    public void Start() {
-        ship = GetComponent<Ship>();
-        possibleThreats = new Dictionary<Ship, ThreatData>();
-        foreach (Ship ship in FindObjectsOfType<Ship>()) {
-            possibleThreats[ship] = new ThreatData(this, ship);
-        }
-        
-        Events.SHIP_SPAWN.AddListener(OnAddShip);
-        Events.SHIP_DESTROY.AddListener(OnRemoveShip);
-        Events.SHIP_DAMAGE.AddListener(OnDamageShip);
-    }
-
-    public void OnAddShip(Events.ShipSpawnEvent e) {
-        possibleThreats[e.ship] = new ThreatData(this, e.ship);
-    }
-
-    public void OnRemoveShip(Events.ShipDestroyEvent e) {
-        possibleThreats[e.ship] = null;
-    }
-
-    public void OnDamageShip(Events.ShipDamageEvent e) {
-        if (e.damaged != ship)
-            return;
-
-        possibleThreats[e.damaged].damageReceived += e.totalDamage;
-    }
-    
-    public void Update() {
-        if (Time.timeSinceLevelLoad > lastSearch + 3.0f) {
-            foreach (ThreatData data in possibleThreats.Values) {
-                data.Update();
+            _threats ??= new List<ThreatData>();
+            foreach (Ship ship in FindObjectsOfType<Ship>()) {
+                if (this.ship != ship)
+                    _threats.Add(new ThreatData(this, ship));
             }
+
+            return _threats;
         }
     }
 
-    public Vector3 GetTargetDirection() {
+    public ShootData GetTargetLocation() {
         ThreatData target = threat;
+        if (target == null)
+            return null;
+
+        // TODO Add support to track future position
+        float time = target.TimeSinceSeen();
 
         // This is the position of the ship assuming there have been no forces.
         // This, of course, is a bogus assumption. Perhaps we should consider 
         // taking "ForceEntity" equations into effect, or at least GravityObject.
-        Vector3 expectedPosition = target.lastKnownPosition + target.lastKnownVelocity * target.TimeSinceSeen();
-        Vector3 actualPosition = target.ship.transform.position;
-        RaycastHit ray;
-        bool canSee = !ship.cloak.active && Physics.Raycast(new Ray(transform.position, actualPosition - transform.position), out ray);
+        Vector3 expectedPosition = target.lastKnownPosition + target.lastKnownVelocity * time;
         
-        // Now lets calculate our "confidence" of our shot. A confidence [-1, 0]
-        // means our information is shit, can we should basically shoot randomly
-        // in the general direction. A confidence [0, 1] will lerp between the
-        // expected and actual position
-        
+        // Now lets calculate the "confidence" of our shot. We start with a
+        // confidence of 1 and strip that down to some negative number. 
+        float confidence = 1f;
+        confidence -= time / 7f;
+        confidence -= target.distance / 60f;
+
+        Vector3 noise = Random.onUnitSphere * (1f - confidence);
+
+        return new ShootData
+            {
+                position = expectedPosition,
+                noise = noise,
+                confidence = confidence
+            };
     }
     
-    
-    
-    
-
     
     public class ThreatData {
 
@@ -101,19 +128,26 @@ public class ThreatTable : MonoBehaviour {
         public Vector3 lastKnownVelocity;
         public float lastKnownHealth;
         public float damageReceived;
-        public float distanceSquared;
+        public float distance;
         public float lastSeenTime;
 
         internal ThreatData(ThreatTable root, Ship ship) {
             this.root = root;
             this.ship = ship;
+            
+            Update();
         }
 
         internal void Update() {
-            lastKnownPosition = ship.transform.position;
-            lastKnownVelocity = ship.body.velocity;
-            lastKnownHealth = ship.health;
-            distanceSquared = MathUtil.SquareDistance(lastKnownPosition, root.ship.transform.position);
+
+            bool hit = Physics.Raycast(new Ray(root.transform.position, ship.transform.position - root.transform.position), out RaycastHit ray);
+            if (hit && ray.transform.gameObject == ship.gameObject && (ship.cloak == null || !ship.cloak.active)) {
+                lastSeenTime = Time.timeSinceLevelLoad;
+                lastKnownPosition = ship.transform.position;
+                lastKnownVelocity = ship.body.velocity;
+                lastKnownHealth = ship.health;
+                distance = ray.distance;
+            }
         }
 
         internal float Evaluate() {
@@ -125,7 +159,7 @@ public class ThreatTable : MonoBehaviour {
             //   4. ships that are aiming at us
             float healthFactor = 1f - lastKnownHealth / ship.maxHealth;
             float damageFactor = damageReceived / root.ship.maxHealth;
-            float distanceFactor = (100_000_000f - distanceSquared) / distanceSquared;
+            float distanceFactor = (1000f - distance) / distance;
 
             return healthFactor * root.healthWeight + damageFactor * root.damageWeight +
                    distanceFactor * root.distanceWeight;
@@ -141,8 +175,14 @@ public class ThreatTable : MonoBehaviour {
     }
 
     public class ShootData {
-        public Vector3 direction;
+        public Vector3 position;
+        public Vector3 noise;
         public float confidence;
-        public float speed;
+
+        public (Vector3 origin, Vector3 direction) Ray(Vector3 origin) {
+            Vector3 direction = (position - origin + noise);
+
+            return (origin, direction);
+        }
     }
 }

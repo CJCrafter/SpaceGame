@@ -37,7 +37,7 @@ public class Engine : MonoBehaviour {
         }
         
         // Handle engine sounds. Only play the sound when the engine is active.
-        if (!Application.isPlaying || !play)
+        if (!Application.isPlaying || !play || audio == null)
             return;
 
         audio.volume = volume.Lerp(current);

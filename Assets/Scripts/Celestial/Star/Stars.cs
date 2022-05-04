@@ -16,17 +16,30 @@ public class Stars : MonoBehaviour {
     // Used to handle 'white dwarf' and 'red giant' stars
     [Range(0f, 1f)] public float whiteDwarfSize;
     [Range(0f, 1f)] public float whiteDwarfChance;
+    [Range(0.5f, 1f)] public float whiteDwarfMultiplier;
     [Range(0f, 1f)] public float redGiantSize;
     [Range(0f, 1f)] public float redGiantChance;
     [Min(1f)] public float redGiantMultiplier;
     
     public ComputeShader compute;
-    [HideInInspector] public RenderTexture target;
+    [SerializeReference, HideInInspector] public RenderTexture target;
     private ComputeBuffer buffer;
     private Material skybox;
 
     // * ----- PROPERTY CACHE ----- * // 
     private static readonly int _mainTex = Shader.PropertyToID("_MainTex");
+
+    private void Awake() {
+        
+        if (target == null) {
+            Generate();
+        }
+        else {
+            Init();
+            skybox.SetTexture(_mainTex, target);
+            RenderSettings.skybox = skybox;
+        }
+    }
 
     private void Init() {
         if (target == null || target.width != Screen.width * resolution || target.height != Screen.height * resolution) {
@@ -48,11 +61,8 @@ public class Stars : MonoBehaviour {
         }
     }
 
-    private void Awake() {
-        Generate();
-    }
-
     public void Generate() {
+        float startTime = Time.realtimeSinceStartup;
         Debug.Log("Generating star box");
         Init();
         
@@ -87,6 +97,7 @@ public class Stars : MonoBehaviour {
 
         //test.targetTexture = target;
         RenderSettings.skybox = skybox;
+        Debug.Log("Took " + (Time.realtimeSinceStartup - startTime) + "s to calculate stars");
     }
 
     public void GenerateFile() {
@@ -107,9 +118,9 @@ public class Stars : MonoBehaviour {
     }
 
     private StarData GenerateSettings() {
-        float val = Random.value; // selector.Evaluate(Random.value);
+        float val = selector.Evaluate(Random.value);
 
-        float brightness = this.brightness.Lerp(val);
+        float brightness = this.brightness.Lerp(Random.value);
         float radius = size.Lerp(val);
         
         // Handle 'white dwarf' and 'red giant' special cases. Big
@@ -119,11 +130,12 @@ public class Stars : MonoBehaviour {
         // MUCH LARGER then average stars. 
         float time = val;
         if (radius < whiteDwarfSize && Random.value < whiteDwarfChance) {
-            time = 0.5f; // white
+            radius *= Random.Range(0.5f, whiteDwarfMultiplier);
+            time = Random.Range(0.45f, 0.55f); // white
         }
         else if (radius > redGiantSize && Random.value < redGiantChance) {
-            radius *= redGiantMultiplier;
-            time = 0.0f; // red
+            radius *= Random.Range(1f, redGiantMultiplier);
+            time = Random.Range(0f, 0.15f); // red
         }
         
         return new StarData
