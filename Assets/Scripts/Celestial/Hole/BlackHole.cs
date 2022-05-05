@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(GravityObject))]
 public class BlackHole : MonoBehaviour {
     
     public float lensingRadius = 200f;

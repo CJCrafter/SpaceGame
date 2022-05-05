@@ -28,17 +28,7 @@ public class PlanetEditor : Editor {
 
         if (GUILayout.Button("Guess Gravity")) {
             float max = float.NegativeInfinity;
-            GravityObject relative = null;
-            foreach (GravityObject obj in FindObjectsOfType<GravityObject>()) {
-                if (obj.gameObject == planet.gameObject)
-                    continue;
-                
-                float f = obj.GetAccelerationAt(planet.transform.position, out Vector3 unused);
-                if (f > max) {
-                    max = f;
-                    relative = obj;
-                }
-            }
+            ForceEntity relative = planet.GetComponent<ForceEntity>().strongestGravity;
 
             if (relative != null) {
 
@@ -48,11 +38,11 @@ public class PlanetEditor : Editor {
                 float velocity = Mathf.Sqrt(Universe.gravitationalConstant * relative.mass / direction.magnitude);
                 
                 // Choose which direction to go in
-                Vector3 vector = planet.GetComponent<GravityObject>().velocity;
+                Vector3 vector = planet.GetComponent<ForceEntity>().initialVelocity;
                 if (vector == Vector3.zero)
                     vector = Vector3.Cross(direction.normalized, Vector3.up);
 
-                planet.GetComponent<GravityObject>().velocity = vector.normalized * velocity;
+                planet.GetComponent<ForceEntity>().initialVelocity = vector.normalized * velocity;
             }
         }
 
@@ -112,7 +102,7 @@ public class PlanetPopup : EditorWindow {
 
     private float scale = 100f;
 
-    private GravityObject parent;
+    private ForceEntity parent;
     private bool attemptStableOrbit = true;
     private float distance = 200f;
 
@@ -125,7 +115,7 @@ public class PlanetPopup : EditorWindow {
     private void OnGUI() {
 
         scale = EditorGUILayout.Slider("Size", scale, 1f, 1000f);
-        parent = (GravityObject) EditorGUILayout.ObjectField("Relative", parent, typeof(GravityObject), true);
+        parent = (ForceEntity) EditorGUILayout.ObjectField("Relative", parent, typeof(ForceEntity), true);
         attemptStableOrbit = EditorGUILayout.Toggle("Try Orbit", attemptStableOrbit);
         distance = EditorGUILayout.Slider("Distance", distance, 1.0f, 10000f);
 
@@ -133,10 +123,9 @@ public class PlanetPopup : EditorWindow {
 
         if (GUILayout.Button("Create")) {
             GameObject obj = new GameObject("Generated Planet");
-            GravityObject planet = obj.AddComponent<GravityObject>();
+            ForceEntity planet = obj.AddComponent<ForceEntity>();
             planet.mass = 100000f * scale;
             planet.hasGravity = true;
-            planet.usesGravity = true;
             obj.transform.position = new Vector3(-distance, 0f, 0f);// todo randomize start
 
             if (attemptStableOrbit) {
@@ -146,7 +135,7 @@ public class PlanetPopup : EditorWindow {
                 // the force of gravity and the centripetal force to match
                 Vector3 direction = parent.transform.position - planet.transform.position;
                 float velocity = Mathf.Sqrt(Universe.gravitationalConstant * parent.mass / direction.magnitude);
-                planet.velocity = new Vector3(0f, 0f, velocity);
+                planet.initialVelocity = new Vector3(0f, 0f, velocity);
             }
 
             if (generator == 1) {

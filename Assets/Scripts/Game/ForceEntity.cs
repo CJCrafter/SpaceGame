@@ -1,41 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Rendering.PostProcessing;
 using UnityEngine;
 
-[RequireComponent(typeof(LineRenderer))]
-[RequireComponent(typeof(Rigidbody))]
+[ExecuteInEditMode]
+[RequireComponent(typeof(Rigidbody), typeof(LineRenderer))]
 public class ForceEntity : MonoBehaviour {
 
     public float dragCoefficient = 0.75f;
     public float mass = 136078f; // mass of fully loaded starship
+    public bool hasGravity; 
     public bool debugForces;
-    public bool showOrbit;
-    
+    public Vector3 initialVelocity;
+
     public Vector3 localUp => (transform.position - strongestGravity.transform.position).normalized;
     public OrbitalData orbit;
     
     protected Universe universe;
     protected LineRenderer orbitDrawer;
-    protected GravityObject strongestGravity;
-    [SerializeReference] private MeshData mesh;
+    [HideInInspector] public ForceEntity strongestGravity;
+    [SerializeReference, HideInInspector] public MeshData mesh;
     [HideInInspector] public Rigidbody body;
     
     protected virtual void Start() {
         universe = FindObjectOfType<Universe>();
         orbitDrawer = GetComponent<LineRenderer>();
         body = GetComponent<Rigidbody>();
+        body.mass = mass;
+        body.AddForce(initialVelocity, ForceMode.VelocityChange);
         orbit = new OrbitalData(this);
 
         mesh ??= new MeshData(this);
         mesh.Init();
-        var obj = new SerializedObject(this);
-        obj.FindProperty("mesh").managedReferenceValue = mesh;
-        obj.ApplyModifiedProperties();
     }
     
     private void FixedUpdate() {
+        if (!Application.isPlaying)
+            return;
+        
         UpdateInputs();
         CalculateForces();
     }
@@ -109,7 +110,9 @@ public class ForceEntity : MonoBehaviour {
      * V = displaced fluid volume (volume of spaceship)
      */
     public Vector3 CalculateBuoyancy() {
-        float g = strongestGravity.GetAccelerationAt(transform.position, out Vector3 unused);
+        Vector3 between = strongestGravity.transform.position - transform.position;
+        float distanceSquared = between.sqrMagnitude;
+        float g = Universe.gravitationalConstant * strongestGravity.mass / distanceSquared;
         return localUp * CalculateDensity() * g * mesh.volume * Time.fixedDeltaTime;
     }
 
@@ -138,10 +141,18 @@ public class ForceEntity : MonoBehaviour {
         var temp = new Vector3[universe.hasGravity.Count];
         
         for (var i = 0; i < universe.hasGravity.Count; i++) {
-            GravityObject obj = universe.hasGravity[i];
+            ForceEntity obj = universe.hasGravity[i];
+            if (this == obj)
+                continue;
 
-            float force = obj.GetAccelerationAt(transform.position, out Vector3 vector);
+            Vector3 between = obj.transform.position - transform.position;
+            float distanceSquared = between.sqrMagnitude;
+            float force = Universe.gravitationalConstant * obj.mass / distanceSquared;
             
+            between.Normalize();
+            between *= force * Time.fixedDeltaTime;
+
+
             // Save the strongest source of gravity to determine which
             // direction is up for the player. 
             if (force >= strongestForce) {
@@ -149,7 +160,7 @@ public class ForceEntity : MonoBehaviour {
                 strongestForce = force;
             }
 
-            temp[i] = vector * mass;
+            temp[i] = between * mass;
         }
 
         return temp;
@@ -162,17 +173,21 @@ public class ForceEntity : MonoBehaviour {
     public class OrbitalData {
 
         private ForceEntity root;
-        private List<Vector3> _points;
+        private Vector3[] _points;
 
         internal OrbitalData(ForceEntity root) {
             this.root = root;
         }
 
-        public List<Vector3> points {
+        public Vector3[] points {
             get => _points;
             set {
+                _points = value;
                 orbit = MathUtil.SquareDistance(_points[0], _points[^1]) < 25f;
                 sampleTime = Time.timeSinceLevelLoad;
+                LineRenderer line = root.orbitDrawer;
+                line ??= root.GetComponent<LineRenderer>();
+                line.SetPositions(points);
             }
         }
 
@@ -187,10 +202,6 @@ public class ForceEntity : MonoBehaviour {
             get;
             private set;
         }
-
-        public void Show() {
-            
-        }
     }
     
     [Serializable]
@@ -200,6 +211,7 @@ public class ForceEntity : MonoBehaviour {
         [SerializeField] private string meshName;
         [SerializeField] private bool calculated;
         [SerializeField] public float volume;
+        [SerializeField] public float radius;
         [SerializeField] public float[] areas; // 3x3x3 box array, unwrapped
         
         public MeshData(ForceEntity root) {
@@ -224,9 +236,9 @@ public class ForceEntity : MonoBehaviour {
                 return;
 
             float startTime = Time.realtimeSinceStartup;
-            float furthestPoint = mesh.bounds.extents.magnitude;
+            radius = mesh.bounds.extents.magnitude;
             volume = MeshUtil.CalculateVolume(mesh);
-            
+
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
                     for (int z = -1; z <= 1; z++) {
@@ -242,14 +254,14 @@ public class ForceEntity : MonoBehaviour {
                         // trace. Total up all positive hits to estimate the area.
                         int total = 0;
                         const int detail = 32;
-                        float step = furthestPoint / detail;
+                        float step = radius / detail;
                         for (int i = -detail; i < detail; i++) {
                             for (int j = -detail; j < detail; j++) {
 
                                 // 'o' is short for origin. 
                                 Vector3 o = root.transform.position + a * i * step + b * j * step -
-                                            direction * furthestPoint;
-                                Physics.Raycast(new Ray(o, direction), out RaycastHit hit, furthestPoint * 2f);
+                                            direction * radius;
+                                Physics.Raycast(new Ray(o, direction), out RaycastHit hit, radius * 2f);
                                 bool collides = hit.collider != null && hit.collider.gameObject == root.gameObject;
                                 //if (x == 1 && y == 1 && z == 1)
                                 //    Debug.DrawRay(o, direction * furthestPoint * 2f, collides ? Color.green : Color.red, 100);
@@ -273,7 +285,7 @@ public class ForceEntity : MonoBehaviour {
             calculated = true;
             Debug.Log("Took " + (Time.realtimeSinceStartup - startTime) + "s to calculate " + mesh.name + " properties.");
             Debug.Log("  Volume: " + volume);
-            Debug.Log("  Areas: " + areas);
+            Debug.Log("  Areas: " + string.Join(", ", areas));
         }
         
         public float Area(Vector3 direction) {
