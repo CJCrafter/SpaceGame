@@ -1,4 +1,5 @@
 ﻿using System;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,29 +9,35 @@ public class ForceEntity : MonoBehaviour {
 
     public float dragCoefficient = 0.75f;
     public float mass = 136078f; // mass of fully loaded starship
-    public bool hasGravity; 
+    public bool hasGravity;
+    public bool forceOrbitCalculations;
     public bool debugForces;
     public Vector3 initialVelocity;
 
+    public ForceEntity strongestGravity { get; private set; }
     public Vector3 localUp => (transform.position - strongestGravity.transform.position).normalized;
     public OrbitalData orbit;
     
     protected Universe universe;
     protected LineRenderer orbitDrawer;
-    [HideInInspector] public ForceEntity strongestGravity;
     [SerializeReference, HideInInspector] public MeshData mesh;
     [HideInInspector] public Rigidbody body;
-    
+
     protected virtual void Start() {
         universe = FindObjectOfType<Universe>();
         orbitDrawer = GetComponent<LineRenderer>();
         body = GetComponent<Rigidbody>();
         body.mass = mass;
+        body.useGravity = false;
         body.AddForce(initialVelocity, ForceMode.VelocityChange);
         orbit = new OrbitalData(this);
 
         mesh ??= new MeshData(this);
         mesh.Init();
+    }
+
+    private void Update() {
+        orbit.Render();
     }
     
     private void FixedUpdate() {
@@ -172,8 +179,10 @@ public class ForceEntity : MonoBehaviour {
 
     public class OrbitalData {
 
-        private ForceEntity root;
+        private readonly ForceEntity root;
         private Vector3[] _points;
+        private bool _useGL;
+        private bool _enabled;
 
         internal OrbitalData(ForceEntity root) {
             this.root = root;
@@ -185,8 +194,10 @@ public class ForceEntity : MonoBehaviour {
                 _points = value;
                 orbit = MathUtil.SquareDistance(_points[0], _points[^1]) < 25f;
                 sampleTime = Time.timeSinceLevelLoad;
-                LineRenderer line = root.orbitDrawer;
-                line ??= root.GetComponent<LineRenderer>();
+                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
+                line.sharedMaterial ??= new Material(Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
+                //line.startWidth = line.endWidth = Vector3.Distance(root.transform.position, Camera.main.transform.position) / 1000f;
+                line.positionCount = points.Length;
                 line.SetPositions(points);
             }
         }
@@ -198,9 +209,40 @@ public class ForceEntity : MonoBehaviour {
 
         public bool escape => !orbit;
 
+        public bool useGL {
+            get => _useGL;
+            set {
+                _useGL = value;
+                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
+                line.enabled = !useGL && enabled;
+            }
+        }
+
         public float sampleTime {
             get;
             private set;
+        }
+
+        public bool enabled {
+            get => _enabled;
+            set {
+                _enabled = value;
+                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
+                line.enabled = !useGL && enabled;
+            }
+        }
+
+        internal void Render() {
+            if (!enabled || !useGL || points.Length < 2)
+                return;
+
+            LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
+            for (var i = 1; i < points.Length; i++) {
+                Color color = line.colorGradient.Evaluate(i / (float) points.Length);
+                if (i % 2 == 0)
+                    color = new Color(1f - color.r, 1f - color.g, 1f - color.b);
+                Debug.DrawLine(points[i - 1], points[i], color);
+            }
         }
     }
     

@@ -17,7 +17,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.rider": {
-      "version": "3.0.13",
+      "version": "3.0.14",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -49,13 +49,6 @@
         "com.unity.modules.physics": "1.0.0"
       },
       "url": "https://packages.unity.com"
-    },
-    "com.unity.robotics.vhacd": {
-      "version": "https://github.com/Unity-Technologies/VHACD.git?path=/com.unity.robotics.vhacd",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "854b3d820901804c338365c63f067ad7f1c4b9c0"
     },
     "com.unity.services.core": {
       "version": "1.0.1",

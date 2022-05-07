@@ -11,7 +11,7 @@ public class Launcher : MonoBehaviour {
     private float lastShootTime;
     
     private void Start() {
-        ship = FindObjectOfType<Ship>(); 
+        ship = transform.GetComponentInParent<Ship>(); 
     }
 
     public void Fire() {
@@ -50,5 +50,4 @@ public class Launcher : MonoBehaviour {
         [Range(0f, 1f)] public float spread;
         [Min(0f)] public float cooldown = 0.5f;
     }
-    
 }

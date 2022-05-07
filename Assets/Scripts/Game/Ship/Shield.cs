@@ -53,7 +53,7 @@ public class Shield : MonoBehaviour {
         }
     }
 
-    public float Damage(bool forward, float damage) {
+    public float ApplyDamage(bool forward, float damage) {
         float shieldStrength = forward ? forwardStrength : aftStrength;
         
         // When the shield has no strength left, simply return the damage

@@ -12,6 +12,7 @@ public class Stars : MonoBehaviour {
     [Bounds(0f, 1f)] public Range brightness;
     [Bounds(0f, 1000f)] public Range size;
     public Gradient gradient;
+    [Range(0f, 1f)] public float tintStrength = 1.0f;
 
     // Used to handle 'white dwarf' and 'red giant' stars
     [Range(0f, 1f)] public float whiteDwarfSize;
@@ -89,6 +90,7 @@ public class Stars : MonoBehaviour {
         compute.SetBuffer(kernel, "_stars", buffer);
         compute.SetInt("_starCount", this.stars);
         compute.SetTexture(kernel, "_gradient", ShaderUtil.GenerateTextureFromGradient(gradient, 128));
+        compute.SetFloat("_tintStrength", tintStrength);
         compute.SetMatrix("_cameraToWorld", camera.cameraToWorldMatrix);
         compute.SetMatrix("_cameraInverseProjection", camera.projectionMatrix.inverse);
 

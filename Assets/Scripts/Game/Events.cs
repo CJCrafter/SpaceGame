@@ -1,4 +1,5 @@
-﻿using UnityEngine.Events;
+﻿using UnityEditor;
+using UnityEngine.Events;
 
 namespace Game { 
 
@@ -16,7 +17,7 @@ public class Events {
             this.ship = ship;
         }
     }
-
+    
     public class ShipDestroyEvent {
         public readonly Ship ship;
 
@@ -26,8 +27,8 @@ public class Events {
     }
 
     public class ShipDamageEvent {
-        public readonly Ship damager;
-        public readonly Ship damaged;
+        public ForceEntity damager;
+        public Ship damaged;
         public float totalDamage;
         public float appliedDamage;
     }

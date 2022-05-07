@@ -7,7 +7,6 @@ public class OrbitHelper : MonoBehaviour {
 
     private class EntitySimulation {
         internal readonly ForceEntity entity;
-        internal string name;
         internal GameObject gameObject;
         internal Vector3 position;
         internal Vector3 velocity;
@@ -17,33 +16,48 @@ public class OrbitHelper : MonoBehaviour {
 
         internal EntitySimulation(ForceEntity entity) {
             this.entity = entity;
+            Update();
         }
 
         internal void Update() {
-            name = entity.name;
             gameObject = entity.gameObject;
             position = entity.transform.position;
-            velocity = entity.initialVelocity;
+            velocity = Application.isPlaying ? entity.body.velocity : entity.initialVelocity;
             mass = entity.mass;
             hasGravity = entity.hasGravity;
             radius = entity.mesh?.radius ?? 5f;
         }
     }
-    
+
     [Min(1)] public int steps = 100;
+    [Min(1f)] public float timeStep = 1f;
+    [Min(1f)] public float updateInterval = 1f;
+    public bool thin = true;
     public ForceEntity relative;
-    
-    private Universe universe;
+
+    private float lastUpdate;
     private EntitySimulation relativeCache;
     private List<EntitySimulation> entities;
     public List<string> names;
-    
-    
-    public void Init() {
-        universe ??= FindObjectOfType<Universe>();
-        if (universe == null)
-            throw new MissingUniverseException();
 
+
+    public void OnEnable() {
+        if (entities == null)
+            return;
+
+        foreach (EntitySimulation entity in entities.Where(entity => entity.entity.orbit != null))
+            entity.entity.orbit.enabled = true;
+    }
+
+    public void OnDisable() {
+        if (entities == null)
+            return;
+
+        foreach (EntitySimulation entity in entities.Where(entity => entity.entity.orbit != null))
+            entity.entity.orbit.enabled = false;
+    }
+
+    public void Init() {
         entities = new List<EntitySimulation>();
         names = new List<string>();
 
@@ -57,11 +71,24 @@ public class OrbitHelper : MonoBehaviour {
     private void OnValidate() {
         Init();
         relativeCache = entities.Where(entity => entity.gameObject == relative.gameObject).GetEnumerator().Current;
+        foreach (var entity in FindObjectsOfType<ForceEntity>()) {
+            entity.orbit ??= new ForceEntity.OrbitalData(entity);
+            entity.orbit.useGL = thin;
+        }
+
         ShowOrbits();
     }
 
+    private void Update() {
+        if (lastUpdate > Time.timeSinceLevelLoad + updateInterval)
+            return;
+        
+        ShowOrbits();
+        lastUpdate = Time.timeSinceLevelLoad;   
+    }
+
     public void ShowOrbits() {
-        if (universe == null || entities == null)
+        if (entities == null)
             Init();
 
         foreach (EntitySimulation entity in entities) {
@@ -93,7 +120,7 @@ public class OrbitHelper : MonoBehaviour {
                 // Additionally, lets check if we are in a loop. This means
                 // we are in a stable orbit and can stop calculations for this
                 // specific planet.
-                if (MathUtil.SquareDistance(points[j, i], points[j, 0]) < 100f)
+                if (j - i > 10 && MathUtil.SquareDistance(points[j, i], points[j, 0]) < 25f)
                     skip[j] = true;
             }
         }
@@ -121,6 +148,8 @@ public class OrbitHelper : MonoBehaviour {
 
             for (var i = 0; i < entities.Count; i++) {
                 EntitySimulation entity = entities[i];
+                if (entity == gravity)
+                    continue;
                 
                 // Slight optimization to stop calculating gravity for 
                 // objects in a stable orbit OR if the orbit collided with
@@ -139,7 +168,7 @@ public class OrbitHelper : MonoBehaviour {
                 float force = Universe.gravitationalConstant * gravity.mass / distanceSquared;
 
                 direction.Normalize();
-                direction *= force; // Use Time.deltaTime here if wanted. We just always simulate 1 second
+                direction *= force * timeStep; // Use Time.deltaTime here if wanted. We just always simulate 1 second
                 entity.velocity += direction;
             }
         }
@@ -151,7 +180,7 @@ public class OrbitHelper : MonoBehaviour {
             if (skip[i] && !entity.hasGravity)
                 continue;
             
-            entity.position += entity.velocity;
+            entity.position += entity.velocity * timeStep;
         }
     }
 

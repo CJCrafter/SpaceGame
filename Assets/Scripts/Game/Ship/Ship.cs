@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Game;
+using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
 public class Ship : ForceEntity {
@@ -8,8 +9,8 @@ public class Ship : ForceEntity {
     
     [Min(0f)] public float engineAcceleration = 35f;
     [Min(0f)] public float sensitivity = 0.75f;
-    [Min(0f)] public float health;
-
+    [Min(0f)] public float health = 100f;
+    [Min(0f)] public float laserDPS = 20f;
     
     [HideInInspector] public GameObject target;
     [HideInInspector] public float maxHealth;
@@ -48,7 +49,7 @@ public class Ship : ForceEntity {
         launchers = transform.GetComponentsInChildren<Launcher>();
 
         maxHealth = health;
-        _hotbar = 1;
+        hotbar = 1;
     }
 
     protected virtual void SwitchedWeapons() {
@@ -57,7 +58,7 @@ public class Ship : ForceEntity {
 
     protected override void UpdateInputs() {
         base.UpdateInputs();
-        
+
         if (!fire && wasFiring)
             StopFireWeapon();
 
@@ -66,15 +67,47 @@ public class Ship : ForceEntity {
         
         wasFiring = fire;
     }
+
+    public virtual void ApplyDamage(ForceEntity source, float damage) {
+        float beforeAdjustments = damage;
+
+        if (shield != null) {
+            bool front = Vector3.Dot(transform.forward, transform.position - source.transform.position) >= 0f;
+            damage = shield.ApplyDamage(front, damage);
+        }
+
+        health -= damage;
+        Events.SHIP_DAMAGE.Invoke(new Events.ShipDamageEvent
+        {
+            damager = source,
+            damaged = this,
+            totalDamage = beforeAdjustments,
+            appliedDamage = damage
+        });
+        
+        if (health <= 0f)
+            Destroy(this);
+    }
     
     public void FireWeapon() {
-        if (hotbar == HOTBAR_LASER && !wasFiring) {
+        if (hotbar == HOTBAR_LASER) {
+            if (!wasFiring) {
+                foreach (Phaser phaser in phasers) {
+                    phaser.RemoveBeam();
+                    phaser.SpawnBeam();
+                }
+            }
+
             foreach (Phaser phaser in phasers) {
-                phaser.RemoveBeam();
-                phaser.SpawnBeam();
+                if (phaser.hit.transform == null)
+                    continue;
+                
+                Ship ship = phaser.hit.transform.GetComponentInParent<Ship>();
+                if (ship != null)
+                    ship.ApplyDamage(this, laserDPS * Time.fixedDeltaTime);
             }
         }
-        
+
         else if (hotbar != HOTBAR_LASER) {
             foreach (Launcher launcher in launchers) {
                 launcher.Fire();

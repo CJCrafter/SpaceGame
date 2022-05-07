@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Phaser : MonoBehaviour {
+    
     [Header("Prefabs")] public GameObject beamLineRendererPrefab; //Put a prefab with a line renderer onto here.
     public GameObject beamStartPrefab; //This is a prefab that is put at the start of the beam.
     public GameObject beamEndPrefab; //Prefab put at end of beam.
@@ -12,14 +13,13 @@ public class Phaser : MonoBehaviour {
     private GameObject beam;
     private LineRenderer line;
     public RaycastHit hit;
-    
-    [Header("Beam Options")] public float distance = 100; //Ingame beam length
+
+    [Header("Beam Options")] public float distance = 200f; //Ingame beam length
     
     
     void Update() {
         if (!beam) 
             return;
-        
         
         line.SetPosition(0, transform.position);
 
@@ -28,6 +28,7 @@ public class Phaser : MonoBehaviour {
             end = hit.point;
         else
             end = transform.position + (transform.forward * this.distance);
+
         
         line.SetPosition(1, end);
 
