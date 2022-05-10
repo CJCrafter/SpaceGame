@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Game;
 using UnityEngine;
 
 public class Projectile : ForceEntity {
@@ -12,7 +13,7 @@ public class Projectile : ForceEntity {
     [Header("Explosion Trigger")] 
     public float timeAlive = 15f;
     public bool triggerOnTime = true;
-    public GameObject target;
+    public ForceEntity target;
     
     [Header("Visuals")]
     public GameObject impactParticlePrefab;
@@ -31,6 +32,9 @@ public class Projectile : ForceEntity {
 
     protected override void Start() {
         base.Start();
+        if (!Application.isPlaying)
+            return;
+
         StartCoroutine(KillOnTime());
         
         Transform transform = this.transform;
@@ -72,12 +76,15 @@ public class Projectile : ForceEntity {
         Collide();
     }
 
-    public override Vector3 CalculateThrust() {
-        Vector3 rotation = transform.forward;
-        if (target != null && this.rotation != 0.0f)
-            Vector3.RotateTowards(rotation, target.transform.position - transform.position, this.rotation, 0);
+    protected override void UpdateInputs() {
+        base.UpdateInputs();
+        Vector3 direction = target.transform.position - transform.position;
+        Debug.DrawRay(transform.position, direction, Color.gray);
+        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), rotation);
+    }
 
-        return rotation * thrust;
+    public override Vector3 CalculateThrust() {
+        return transform.forward * thrust * Mathf.Exp(-body.velocity.magnitude / 100f);
     }
 
     public void Collide() {
@@ -96,7 +103,8 @@ public class Projectile : ForceEntity {
                 ship.ApplyDamage(this, damage * factor);
         }
         
-        Destroy(this);
+        Events.ENTITY_DESTROY.Invoke(new Events.EntityDestroyEvent(this));
+        Destroy(gameObject);
     }
 
     private IEnumerator KillOnTime() {

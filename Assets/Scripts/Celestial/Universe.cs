@@ -16,14 +16,22 @@ public class Universe : MonoBehaviour {
     void Start() {
         hasGravity.Clear();
 
-        foreach (ForceEntity obj in FindObjectsOfType<ForceEntity>()) {
-            all.Add(obj);
-            if (obj.hasGravity)
-                hasGravity.Add(obj);
-        }
-        
-        Events.SHIP_SPAWN.AddListener(e => all.Add(e.ship));
-        Events.SHIP_DESTROY.AddListener(e => all.Remove(e.ship));
+        foreach (ForceEntity obj in FindObjectsOfType<ForceEntity>())
+            AddEntity(obj);
+
+        Events.ENTITY_SPAWN.AddListener(e => AddEntity(e.entity));
+        Events.ENTITY_DESTROY.AddListener(e => RemoveEntity(e.entity));
+    }
+
+    public void AddEntity(ForceEntity entity) {
+        all.Add(entity);
+        if (entity.hasGravity)
+            hasGravity.Add(entity);
+    }
+
+    public void RemoveEntity(ForceEntity entity) {
+        all.Remove(entity);
+        hasGravity.Remove(entity);
     }
 }
 

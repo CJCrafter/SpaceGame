@@ -8,6 +8,7 @@ public class OrbitHelper : MonoBehaviour {
     private class EntitySimulation {
         internal readonly ForceEntity entity;
         internal GameObject gameObject;
+        internal ShowOrbit draw;
         internal Vector3 position;
         internal Vector3 velocity;
         internal float mass;
@@ -21,6 +22,7 @@ public class OrbitHelper : MonoBehaviour {
 
         internal void Update() {
             gameObject = entity.gameObject;
+            draw = gameObject.GetComponent<ShowOrbit>();
             position = entity.transform.position;
             velocity = Application.isPlaying ? entity.body.velocity : entity.initialVelocity;
             mass = entity.mass;
@@ -42,19 +44,13 @@ public class OrbitHelper : MonoBehaviour {
 
 
     public void OnEnable() {
-        if (entities == null)
-            return;
-
-        foreach (EntitySimulation entity in entities.Where(entity => entity.entity.orbit != null))
-            entity.entity.orbit.enabled = true;
+        foreach (ShowOrbit orbit in FindObjectsOfType<ShowOrbit>())
+            orbit.enabled = true;
     }
 
     public void OnDisable() {
-        if (entities == null)
-            return;
-
-        foreach (EntitySimulation entity in entities.Where(entity => entity.entity.orbit != null))
-            entity.entity.orbit.enabled = false;
+        foreach (ShowOrbit orbit in FindObjectsOfType<ShowOrbit>())
+            orbit.enabled = false;
     }
 
     public void Init() {
@@ -70,10 +66,9 @@ public class OrbitHelper : MonoBehaviour {
 
     private void OnValidate() {
         Init();
-        relativeCache = entities.Where(entity => entity.gameObject == relative.gameObject).GetEnumerator().Current;
-        foreach (var entity in FindObjectsOfType<ForceEntity>()) {
-            entity.orbit ??= new ForceEntity.OrbitalData(entity);
-            entity.orbit.useGL = thin;
+        relativeCache = null;
+        foreach (ShowOrbit orbit in FindObjectsOfType<ShowOrbit>()) {
+            orbit.useGL = !thin;
         }
 
         ShowOrbits();
@@ -127,17 +122,19 @@ public class OrbitHelper : MonoBehaviour {
 
         // Setting the points causes the line renderer to do work.
         for (int i = 0; i < entities.Count; i++) {
-            entities[i].entity.orbit ??= new ForceEntity.OrbitalData(entities[i].entity);
-
+            
             Vector3[] temp = new Vector3[steps];
             for (int j = 0; j < steps; j++)
                 temp[j] = points[i, j];
             
-            entities[i].entity.orbit.points = temp;
+            entities[i].draw.points = temp;
         }
     }
 
     private Vector3 GetRelativeVector() {
+        if (relativeCache == null && relative != null) 
+            relativeCache = entities.Where(entity => entity.gameObject == relative.gameObject).GetEnumerator().Current;
+        
         return relativeCache?.position ?? Vector3.zero;
     }
 

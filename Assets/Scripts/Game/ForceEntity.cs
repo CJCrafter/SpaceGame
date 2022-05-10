@@ -1,45 +1,45 @@
 ﻿using System;
-using TMPro;
-using UnityEditor;
 using UnityEngine;
 
-[ExecuteInEditMode]
-[RequireComponent(typeof(Rigidbody), typeof(LineRenderer))]
+[RequireComponent(typeof(Rigidbody), typeof(ShowOrbit))]
 public class ForceEntity : MonoBehaviour {
 
     public float dragCoefficient = 0.75f;
     public float mass = 136078f; // mass of fully loaded starship
     public bool hasGravity;
-    public bool forceOrbitCalculations;
     public bool debugForces;
     public Vector3 initialVelocity;
+    public float health = 100f;
+    public float maxHealth { get; private set; }
 
     public ForceEntity strongestGravity { get; private set; }
     public Vector3 localUp => (transform.position - strongestGravity.transform.position).normalized;
-    public OrbitalData orbit;
-    
+
     protected Universe universe;
-    protected LineRenderer orbitDrawer;
     [SerializeReference, HideInInspector] public MeshData mesh;
     [HideInInspector] public Rigidbody body;
 
     protected virtual void Start() {
         universe = FindObjectOfType<Universe>();
-        orbitDrawer = GetComponent<LineRenderer>();
         body = GetComponent<Rigidbody>();
         body.mass = mass;
+        maxHealth = health;
         body.useGravity = false;
         body.AddForce(initialVelocity, ForceMode.VelocityChange);
-        orbit = new OrbitalData(this);
-
-        mesh ??= new MeshData(this);
-        mesh.Init();
+        
+        if (mesh == null && GetComponent<MeshFilter>())
+            mesh = new MeshData(this);
+        mesh?.Init();
+        SetTagRecursive(gameObject);
     }
 
-    private void Update() {
-        orbit.Render();
+    private static void SetTagRecursive(GameObject obj) {
+        obj.tag = "Entity";
+        obj.layer = 7; // Entity layer
+        foreach (Transform child in obj.transform)
+            SetTagRecursive(child.gameObject);
     }
-    
+
     private void FixedUpdate() {
         if (!Application.isPlaying)
             return;
@@ -90,6 +90,9 @@ public class ForceEntity : MonoBehaviour {
      * v = velocity
      */
     public Vector3 CalculateDrag() {
+        if (mesh == null)
+            return Vector3.zero;
+        
         Vector3 velocity = body.velocity;
         Vector3 force = new Vector3(velocity.x * velocity.x, velocity.y * velocity.y, velocity.z * velocity.z);
 
@@ -117,6 +120,9 @@ public class ForceEntity : MonoBehaviour {
      * V = displaced fluid volume (volume of spaceship)
      */
     public Vector3 CalculateBuoyancy() {
+        if (mesh == null)
+            return Vector3.zero;
+        
         Vector3 between = strongestGravity.transform.position - transform.position;
         float distanceSquared = between.sqrMagnitude;
         float g = Universe.gravitationalConstant * strongestGravity.mass / distanceSquared;
@@ -177,75 +183,6 @@ public class ForceEntity : MonoBehaviour {
         return Vector3.zero;
     }
 
-    public class OrbitalData {
-
-        private readonly ForceEntity root;
-        private Vector3[] _points;
-        private bool _useGL;
-        private bool _enabled;
-
-        internal OrbitalData(ForceEntity root) {
-            this.root = root;
-        }
-
-        public Vector3[] points {
-            get => _points;
-            set {
-                _points = value;
-                orbit = MathUtil.SquareDistance(_points[0], _points[^1]) < 25f;
-                sampleTime = Time.timeSinceLevelLoad;
-                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
-                line.sharedMaterial ??= new Material(Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
-                //line.startWidth = line.endWidth = Vector3.Distance(root.transform.position, Camera.main.transform.position) / 1000f;
-                line.positionCount = points.Length;
-                line.SetPositions(points);
-            }
-        }
-
-        public bool orbit {
-            get;
-            private set;
-        }
-
-        public bool escape => !orbit;
-
-        public bool useGL {
-            get => _useGL;
-            set {
-                _useGL = value;
-                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
-                line.enabled = !useGL && enabled;
-            }
-        }
-
-        public float sampleTime {
-            get;
-            private set;
-        }
-
-        public bool enabled {
-            get => _enabled;
-            set {
-                _enabled = value;
-                LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
-                line.enabled = !useGL && enabled;
-            }
-        }
-
-        internal void Render() {
-            if (!enabled || !useGL || points.Length < 2)
-                return;
-
-            LineRenderer line = root.orbitDrawer ??= root.GetComponent<LineRenderer>();
-            for (var i = 1; i < points.Length; i++) {
-                Color color = line.colorGradient.Evaluate(i / (float) points.Length);
-                if (i % 2 == 0)
-                    color = new Color(1f - color.r, 1f - color.g, 1f - color.b);
-                Debug.DrawLine(points[i - 1], points[i], color);
-            }
-        }
-    }
-    
     [Serializable]
     public class MeshData {
 

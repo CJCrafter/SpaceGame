@@ -1452,7 +1452,7 @@ MonoBehaviour:
     value: {fileID: 2800000, guid: 9d5e3e34b444a8941956666222fd1659, type: 3}
   lensSurfaceDirtIntensity:
     overrideState: 1
-    value: 0.27
+    value: 0.1
   lensSurfaceDiffractionTexture:
     overrideState: 1
     value: {fileID: 2800000, guid: c7a4475ca89fc4e42affdae13fa5ff85, type: 3}

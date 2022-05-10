@@ -23,7 +23,7 @@ public class Launcher : MonoBehaviour {
             throw new Exception("Tried to fire " + ship.hotbar + " when that is invalid");
 
         // Handle cool down for the launcher + sounds
-        if (lastShootTime > Time.timeSinceLevelLoad + projectile.cooldown) {
+        if (Time.timeSinceLevelLoad < lastShootTime + projectile.cooldown) {
             ship.audio.clip = noAmmoClip;
             ship.audio.Play();
             return;
@@ -32,12 +32,9 @@ public class Launcher : MonoBehaviour {
         
         // Create the object and rotate it towards the target OR the ship's current rotation
         GameObject obj = Instantiate(projectile.prefab, transform.position, Quaternion.identity);
-        if (ship.target != null)
-            obj.transform.LookAt(ship.target.transform);
-        else
-            obj.transform.rotation = ship.transform.rotation;
-        
-        
+        obj.transform.rotation = ship.GetShootDirection(transform.position);
+        obj.GetComponent<Projectile>().target = ship.GetTarget();
+
         Vector3 velocity = (ship.transform.forward + Random.onUnitSphere * projectile.spread) * projectile.speed;
         velocity += ship.GetComponent<Rigidbody>().velocity;
         obj.GetComponent<Rigidbody>().AddForce(velocity, ForceMode.VelocityChange);

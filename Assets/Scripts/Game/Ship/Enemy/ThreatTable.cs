@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Game;
 using UnityEngine;
 
@@ -8,8 +9,13 @@ public class ThreatTable : MonoBehaviour {
     [Range(0f, 2f)] public float healthWeight;
     [Range(0f, 2f)] public float damageWeight;
     [Range(0f, 2f)] public float distanceWeight;
+    [Min(0f)] public float trackingRange = 5000f;
+    [Min(0f)] public float trackingRangeNoise = 100f;
+    [Min(0f)] public float trackingTime = 14f;
+    [Min(0f)] public float trackingTimeNoise = 1;
     
     private Ship ship;
+    private Vector3[] eyes;
     private List<ThreatData> _threats;
     private float lastAssessment;
     private float lastSearch;
@@ -21,26 +27,45 @@ public class ThreatTable : MonoBehaviour {
         
         ship = GetComponent<Ship>();
 
-        Events.SHIP_SPAWN.AddListener(OnAddShip);
-        Events.SHIP_DESTROY.AddListener(OnRemoveShip);
-        Events.SHIP_DAMAGE.AddListener(OnDamageShip);
+        var eyes = (from Transform child in ship.transform where child.gameObject.name.StartsWith("Eye") select child.gameObject).ToList();
+        this.eyes = new Vector3[eyes.Count];
+        for (var i = 0; i < eyes.Count; i++) {
+            GameObject eye = eyes[i];
+            this.eyes[i] = eye.transform.position - ship.transform.position;
+            Destroy(eye);
+        }
+
+        Events.ENTITY_SPAWN.AddListener(OnAddEntity);
+        Events.ENTITY_DESTROY.AddListener(OnRemoveEntity);
+        Events.ENTITY_DAMAGE.AddListener(OnDamageEntity);
     }
 
-    public void OnAddShip(Events.ShipSpawnEvent e) {
-        Debug.Log("ADDED");
-        if (ship != e.ship)
-            threats.Add(new ThreatData(this, e.ship));
+    public void OnAddEntity(Events.EntitySpawnEvent e) {
+        if (ship != e.entity)
+            threats.Add(new ThreatData(this, e.entity));
     }
 
-    public void OnRemoveShip(Events.ShipDestroyEvent e) {
-        threats.RemoveAll(element => element.ship == e.ship);
+    public void OnRemoveEntity(Events.EntityDestroyEvent e) {
+        threats.RemoveAll(element => element.entity == e.entity);
     }
 
-    public void OnDamageShip(Events.ShipDamageEvent e) {
+    public void OnDamageEntity(Events.EntityDamageEvent e) {
         if (ship != e.damaged || ship == e.damager)
             return;
 
-        threats.Find(element => element.ship == e.damager).damageReceived += e.totalDamage;
+        threats.Find(element => element.entity == e.damager).damageReceived += e.totalDamage;
+    }
+
+    public bool HasTarget() {
+        ThreatData target = threat;
+        if (target == null)
+            return false;
+
+        float time = target.TimeSinceSeen();
+        float confidence = 1f;
+        confidence -= time / (trackingTime / 2f);
+        confidence -= target.distance / trackingRange;
+        return confidence > -1f;
     }
     
     public void Update() {
@@ -57,20 +82,28 @@ public class ThreatTable : MonoBehaviour {
         get {
             if (_threat != null && !(Time.timeSinceLevelLoad > lastAssessment + assessmentInterval)) 
                 return _threat;
-            
+
             Init();
             lastAssessment = Time.timeSinceLevelLoad;
 
-            float max = float.MinValue;
-            _threat = null;
-            foreach (var threat in threats) {
-                float threatLevel = threat.Evaluate();
+            bool changed = false;
+            float max = _threat?.Evaluate() ?? float.MinValue;
+            foreach (ThreatData option in threats) {
+                if (option == _threat)
+                    continue;
+                
+                float threatLevel = option.Evaluate();
                 if (threatLevel >= max) {
+                    changed = true;
                     max = threatLevel;
-                    _threat = threat;
+                    _threat = option;
                 }
             }
-
+            
+            if (changed) 
+                _threat?.Update();
+            
+            // Make sure to update our information about that threat
             return _threat;
         }
     }
@@ -90,13 +123,12 @@ public class ThreatTable : MonoBehaviour {
         }
     }
 
-    public ShootData GetTargetLocation() {
+    public ShootData GetTargetLocation(float inTime = 0f) {
         ThreatData target = threat;
         if (target == null)
             return null;
 
-        // TODO Add support to track future position
-        float time = target.TimeSinceSeen();
+        float time = target.TimeSinceSeen() + inTime;
 
         // This is the position of the ship assuming there have been no forces.
         // This, of course, is a bogus assumption. Perhaps we should consider 
@@ -106,8 +138,8 @@ public class ThreatTable : MonoBehaviour {
         // Now lets calculate the "confidence" of our shot. We start with a
         // confidence of 1 and strip that down to some negative number. 
         float confidence = 1f;
-        confidence -= time / 7f;
-        confidence -= target.distance / 60f;
+        confidence -= time / (trackingTime / 2f) * trackingTimeNoise;
+        confidence -= target.distance / trackingRange * trackingRangeNoise;
 
         Vector3 noise = Random.onUnitSphere * (1f - confidence);
 
@@ -123,7 +155,7 @@ public class ThreatTable : MonoBehaviour {
     public class ThreatData {
 
         private readonly ThreatTable root;
-        public readonly Ship ship;
+        public readonly ForceEntity entity;
         public Vector3 lastKnownPosition;
         public Vector3 lastKnownVelocity;
         public float lastKnownHealth;
@@ -131,22 +163,30 @@ public class ThreatTable : MonoBehaviour {
         public float distance;
         public float lastSeenTime;
 
-        internal ThreatData(ThreatTable root, Ship ship) {
+        internal ThreatData(ThreatTable root, ForceEntity entity) {
             this.root = root;
-            this.ship = ship;
+            this.entity = entity;
             
             Update();
         }
 
         internal void Update() {
+            Debug.Log("Updating " + entity.gameObject);
 
-            bool hit = Physics.Raycast(new Ray(root.transform.position, ship.transform.position - root.transform.position), out RaycastHit ray);
-            if (hit && ray.transform.gameObject == ship.gameObject && (ship.cloak == null || !ship.cloak.active)) {
-                lastSeenTime = Time.timeSinceLevelLoad;
-                lastKnownPosition = ship.transform.position;
-                lastKnownVelocity = ship.body.velocity;
-                lastKnownHealth = ship.health;
-                distance = ray.distance;
+            foreach (Vector3 eye in root.eyes) {
+                Vector3 origin = root.transform.position + eye;
+                Ray cast = new Ray(origin, entity.transform.position - origin);
+                const int layerFilter = 1 << 7;
+                bool hit = Physics.Raycast(cast, out RaycastHit ray, 2500f, layerFilter);
+
+                if (hit && ray.transform.gameObject.CompareTag("Entity") && ray.transform.GetComponentInParent<ForceEntity>() == entity) {
+                    lastSeenTime = Time.timeSinceLevelLoad;
+                    lastKnownPosition = entity.transform.position;
+                    lastKnownVelocity = entity.body.velocity;
+                    lastKnownHealth = entity.health;
+                    distance = ray.distance;
+                    break;
+                }
             }
         }
 
@@ -157,7 +197,7 @@ public class ThreatTable : MonoBehaviour {
             //   2. ships that dealt a lot of damage
             //   3. close ships
             //   4. ships that are aiming at us
-            float healthFactor = 1f - lastKnownHealth / ship.maxHealth;
+            float healthFactor = 1f - lastKnownHealth / entity.maxHealth;
             float damageFactor = damageReceived / root.ship.maxHealth;
             float distanceFactor = (1000f - distance) / distance;
 
@@ -168,10 +208,6 @@ public class ThreatTable : MonoBehaviour {
         internal float TimeSinceSeen() {
             return Time.timeSinceLevelLoad - lastSeenTime;
         }
-        
-        public override int GetHashCode() {
-            return ship.gameObject.GetHashCode();
-        }
     }
 
     public class ShootData {
@@ -180,7 +216,7 @@ public class ThreatTable : MonoBehaviour {
         public float confidence;
 
         public (Vector3 origin, Vector3 direction) Ray(Vector3 origin) {
-            Vector3 direction = (position - origin + noise);
+            Vector3 direction = position - origin + noise;
 
             return (origin, direction);
         }

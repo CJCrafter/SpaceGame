@@ -5,30 +5,30 @@ namespace Game {
 
 public class Events {
 
-    public static UnityEvent<ShipSpawnEvent> SHIP_SPAWN = new();
-    public static UnityEvent<ShipDestroyEvent> SHIP_DESTROY = new();
-    public static UnityEvent<ShipDamageEvent> SHIP_DAMAGE = new();
+    public static UnityEvent<EntitySpawnEvent> ENTITY_SPAWN = new();
+    public static UnityEvent<EntityDestroyEvent> ENTITY_DESTROY = new();
+    public static UnityEvent<EntityDamageEvent> ENTITY_DAMAGE = new();
 
 
-    public class ShipSpawnEvent {
-        public readonly Ship ship;
+    public class EntitySpawnEvent {
+        public readonly ForceEntity entity;
 
-        public ShipSpawnEvent(Ship ship) {
-            this.ship = ship;
+        public EntitySpawnEvent(ForceEntity entity) {
+            this.entity = entity;
         }
     }
     
-    public class ShipDestroyEvent {
-        public readonly Ship ship;
+    public class EntityDestroyEvent {
+        public readonly ForceEntity entity;
 
-        public ShipDestroyEvent(Ship ship) {
-            this.ship = ship;
+        public EntityDestroyEvent(ForceEntity entity) {
+            this.entity = entity;
         }
     }
 
-    public class ShipDamageEvent {
+    public class EntityDamageEvent {
         public ForceEntity damager;
-        public Ship damaged;
+        public ForceEntity damaged;
         public float totalDamage;
         public float appliedDamage;
     }

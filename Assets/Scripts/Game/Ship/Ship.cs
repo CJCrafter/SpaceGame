@@ -9,11 +9,8 @@ public class Ship : ForceEntity {
     
     [Min(0f)] public float engineAcceleration = 35f;
     [Min(0f)] public float sensitivity = 0.75f;
-    [Min(0f)] public float health = 100f;
     [Min(0f)] public float laserDPS = 20f;
     
-    [HideInInspector] public GameObject target;
-    [HideInInspector] public float maxHealth;
     private bool wasFiring;
     protected bool fire;
     private int _hotbar;
@@ -47,8 +44,7 @@ public class Ship : ForceEntity {
         rockets = transform.GetComponentsInChildren<Engine>();
         phasers = transform.GetComponentsInChildren<Phaser>();
         launchers = transform.GetComponentsInChildren<Launcher>();
-
-        maxHealth = health;
+        
         hotbar = 1;
     }
 
@@ -68,7 +64,7 @@ public class Ship : ForceEntity {
         wasFiring = fire;
     }
 
-    public virtual void ApplyDamage(ForceEntity source, float damage) {
+    public virtual void ApplyDamage(ForceEntity source, float damage, bool impulse = true) {
         float beforeAdjustments = damage;
 
         if (shield != null) {
@@ -77,16 +73,18 @@ public class Ship : ForceEntity {
         }
 
         health -= damage;
-        Events.SHIP_DAMAGE.Invoke(new Events.ShipDamageEvent
+        Events.ENTITY_DAMAGE.Invoke(new Events.EntityDamageEvent
         {
             damager = source,
             damaged = this,
             totalDamage = beforeAdjustments,
             appliedDamage = damage
         });
-        
-        if (health <= 0f)
-            Destroy(this);
+
+        if (health <= 0f) {
+            Destroy(gameObject);
+            Events.ENTITY_DESTROY.Invoke(new Events.EntityDestroyEvent(this));
+        }
     }
     
     public void FireWeapon() {
@@ -119,5 +117,13 @@ public class Ship : ForceEntity {
         foreach (Phaser phaser in phasers) {
             phaser.RemoveBeam();
         }
+    }
+
+    public virtual Quaternion GetShootDirection(Vector3 origin) {
+        return transform.rotation;
+    }
+
+    public virtual ForceEntity GetTarget() {
+        return null;
     }
 }

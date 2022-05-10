@@ -23,7 +23,7 @@ public class Stars : MonoBehaviour {
     [Min(1f)] public float redGiantMultiplier;
     
     public ComputeShader compute;
-    [SerializeReference, HideInInspector] public RenderTexture target;
+    [HideInInspector] public RenderTexture target;
     private ComputeBuffer buffer;
     private Material skybox;
 
