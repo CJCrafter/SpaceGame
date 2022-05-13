@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
+[ExecuteAlways]
 public class Stars : MonoBehaviour {
     
     public int seed;
@@ -23,25 +24,18 @@ public class Stars : MonoBehaviour {
     [Min(1f)] public float redGiantMultiplier;
     
     public ComputeShader compute;
-    [HideInInspector] public RenderTexture target;
+    [SerializeReference, HideInInspector] public RenderTexture target;
     private ComputeBuffer buffer;
-    private Material skybox;
+    public Material skybox;
 
     // * ----- PROPERTY CACHE ----- * // 
     private static readonly int _mainTex = Shader.PropertyToID("_MainTex");
 
-    private void Awake() {
+    private void Start() {
+        Init();
         
-        if (target == null) {
-            Generate();
-        }
-        else {
-            Init();
-            skybox.SetTexture(_mainTex, target);
-            RenderSettings.skybox = skybox;
-        }
     }
-
+    
     private void Init() {
         if (target == null || target.width != Screen.width * resolution || target.height != Screen.height * resolution) {
             if (target != null)
@@ -57,9 +51,9 @@ public class Stars : MonoBehaviour {
             buffer = new ComputeBuffer(stars, 4 * 6);
         }
 
-        if (skybox == null) {
-            skybox = new Material(Shader.Find("Skybox/Panoramic"));
-        }
+        //if (skybox == null) {
+        //    skybox = new Material(Shader.Find("Skybox/Panoramic"));
+        //}
     }
 
     public void Generate() {
@@ -86,7 +80,6 @@ public class Stars : MonoBehaviour {
         int threadX = Mathf.CeilToInt(resolution * Screen.width / 8f);
         int threadY = Mathf.CeilToInt(resolution * Screen.height / 8f);
         
-       
         compute.SetBuffer(kernel, "_stars", buffer);
         compute.SetInt("_starCount", this.stars);
         compute.SetTexture(kernel, "_gradient", ShaderUtil.GenerateTextureFromGradient(gradient, 128));
@@ -97,8 +90,6 @@ public class Stars : MonoBehaviour {
         compute.Dispatch(kernel, threadX, threadY, 1);
         skybox.SetTexture(_mainTex, target);
 
-        //test.targetTexture = target;
-        RenderSettings.skybox = skybox;
         Debug.Log("Took " + (Time.realtimeSinceStartup - startTime) + "s to calculate stars");
     }
 

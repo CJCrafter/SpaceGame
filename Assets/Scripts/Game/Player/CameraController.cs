@@ -11,7 +11,6 @@ public class CameraController : MonoBehaviour {
     
     private Vector3 position;
     private Quaternion rotation;
-    private Rigidbody body;
     private float shakeStart;
     private float shakeDuration;
     private float shakeStrength;
@@ -24,7 +23,7 @@ public class CameraController : MonoBehaviour {
     public void FixedUpdate() {
         position = Vector3.Lerp(position, GetTargetLocation(), moveSpeed);
         rotation = Quaternion.Lerp(rotation, GetTargetRotation(), rotateSpeed);
-
+        
         // Handle shaking 
         if (shakeDuration > Time.timeSinceLevelLoad - shakeStart) {
             float t = (Time.timeSinceLevelLoad - shakeStart) / shakeDuration;

@@ -138,14 +138,14 @@ public class ForceEntity : MonoBehaviour {
         if (planet == null)
             return 0f;
 
-        float outer = planet.radius * planet.atmosphere.atmospherePercentage;
+        float outer = planet.radius * planet.atmosphere.radius;
         float distance = MathUtil.Distance(transform.position, strongestGravity.transform.position);
         if (distance > outer)
             return 0f;
         if (distance < planet.elevationBounds.max * planet.radius * planet.biomes.oceanHeight)
             return 997f; // density of water
 
-        return MathUtil.Remap(distance, 0, outer, 0, planet.atmosphere.atmosphereDensity);
+        return MathUtil.Remap(distance, 0, outer, 0, 420); // todo
     }
 
     public Vector3[] CalculateGravity() {

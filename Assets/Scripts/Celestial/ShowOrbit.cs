@@ -35,7 +35,8 @@ public class ShowOrbit : MonoBehaviour {
         get => _useGL;
         set {
             _useGL = value;
-            line.enabled = !useGL && enabled;
+            if (line != null)
+                line.enabled = !useGL && enabled;
         }
     }
 

@@ -42,8 +42,20 @@ public class Planet : MonoBehaviour {
         }
     }
 
-    public void GenerateMeshes() {
+    public void Start() {
+        if (atmosphere == null)
+            return;
         
+        atmosphere.UpdateShader(this);
+        CameraPost post = FindObjectOfType<CameraPost>();
+        post.materials.Add(atmosphere.material);
+    }
+
+    public void Update() {
+        atmosphere.UpdateShader(this);
+    }
+
+    public void GenerateMeshes() {
         foreach (Mesh mesh in LODS)
             GenerateMesh(mesh);
         

@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eacfd7c1168900748b7e548d503e4949, type: 3}
   m_Name: Earthlike
   m_EditorClassIdentifier: 
-  atmospherePercentage: 0.05
+  atmospherePercentage: 0.322
   atmosphereDensity: 1.225

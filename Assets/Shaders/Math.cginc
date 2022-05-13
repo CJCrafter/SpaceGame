@@ -61,7 +61,7 @@ float Blend(float startHeight, float blendDst, float height) {
 // Returns vector (dstToSphere, dstThroughSphere)
 // If ray origin is inside sphere, dstToSphere = 0
 // If ray misses sphere, dstToSphere = maxValue; dstThroughSphere = 0
-float2 raySphere(float3 sphereCentre, float sphereRadius, float3 rayOrigin, float3 rayDir) {
+bool raySphere(float3 sphereCentre, float sphereRadius, float3 rayOrigin, float3 rayDir, out float start, out float stop) {
     float3 offset = rayOrigin - sphereCentre;
     float a = 1; // Set to dot(rayDir, rayDir) if rayDir might not be normalized
     float b = 2 * dot(offset, rayDir);
@@ -76,11 +76,14 @@ float2 raySphere(float3 sphereCentre, float sphereRadius, float3 rayOrigin, floa
 
         // Ignore intersections that occur behind the ray
         if (dstToSphereFar >= 0) {
-            return float2(dstToSphereNear, dstToSphereFar - dstToSphereNear);
+            start = dstToSphereNear;
+            stop = dstToSphereFar - dstToSphereNear;
+            return true;
         }
     }
-    // Ray did not intersect sphere
-    return float2(maxFloat, 0);
+
+    start = stop = 0;
+    return false;
 }
 
 // * ---- RAY TRACING STUFF ----- * //
