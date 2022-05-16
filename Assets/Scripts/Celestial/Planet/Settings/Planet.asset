@@ -17,7 +17,7 @@ MonoBehaviour:
     useMask: 0
     noise:
       type: 0
-      strength: 0.21
+      strength: 0.1
       roughness: 1
       center: {x: 0, y: 0, z: 0}
       min: 0
@@ -26,10 +26,10 @@ MonoBehaviour:
       persistence: 0.51
       weight: 0
   - hide: 0
-    useMask: 1
+    useMask: 0
     noise:
       type: 1
-      strength: 1.51
+      strength: 0.04
       roughness: 0.91
       center: {x: 0, y: 0, z: 0}
       min: 0

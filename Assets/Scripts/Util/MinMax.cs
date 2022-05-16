@@ -1,9 +1,19 @@
-﻿public class MinMax {
-    
-    public float min { get; private set; }
-    public float max { get; private set; }
+﻿using UnityEngine;
+
+[System.Serializable]
+public class MinMax {
+
+    [SerializeField] private float _min;
+    [SerializeField] private float _max;
+
+    public float min { get => _min; private set => _min = value; }
+    public float max { get => _max; private set => _max = value; }
 
     public MinMax() {
+        Clear();
+    }
+
+    public void Clear() {
         min = float.PositiveInfinity;
         max = float.NegativeInfinity;
     }

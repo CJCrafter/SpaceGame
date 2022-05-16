@@ -10,13 +10,17 @@ Shader "Celestial/AtmosphereShader" {
         Cull Off ZWrite Off ZTest Always
 
         Pass {
+
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
+            #pragma enable_d3d11_debug_symbols
+            
             #include "UnityCG.cginc"
             #include "Assets/Shaders/Math.cginc"
 
+
+            
             struct Vertex {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
@@ -41,9 +45,8 @@ Shader "Celestial/AtmosphereShader" {
             float _elevation;
             int _outPoints;
             int _inPoints;
-            float4 _wavelengths;
-            float _averageDensity; // 0-1
-            float _scatteringCoefficient;
+            float3 _wavelengths;
+            float _scatteringStrength; 
             
 
             Interpolator vert(Vertex vertex) {
@@ -56,86 +59,94 @@ Shader "Celestial/AtmosphereShader" {
             }
 
             float CalculateShape(float cosAngle) {
+                return 1;
+                
                 // This function is incomplete, and designed only to approximate
                 // Rayleigh scattering (g -> 0). Check the docs ^^^ to find full
                 const float factor = 0.589048622548; // 3pi / 16;
                 return factor * (1.0 + cosAngle * cosAngle);
             }
 
+            //float CalculateDensity(float3 origin) {
+            //    float height = distance(origin, _planet) - _elevation;
+            //    return exp(-height * _scatteringStrength);
+            //}
+            
             float CalculateDensity(float3 origin) {
                 float height = distance(origin, _planet) - _elevation;
-                height /= _atmosphereRadius;
-                return exp(-height / _averageDensity) * (1 - height);
+                height /= _atmosphereRadius - _elevation;
+                return exp(-height * _scatteringStrength) * (1 - height);
             }
 
-            // Todo optimize this by using exp once (sum up all beta * distance)
-            float CalculateIntensity(float intensity, float beta, float distance, float density) {
-                return intensity * exp(-beta * distance * density);
+            float OpticalDepth(float3 origin, float3 dir, float stop) {
+                float time = 0;
+                float dt = stop / (_inPoints - 1);
+                float midpointDelta = dt * 0.5;
+
+                float accumulate = 0;
+                for (int i = 0; i < _inPoints; i++) {
+                    float3 midpoint = origin + dir * (time + midpointDelta);
+                    float localDensity = CalculateDensity(midpoint);
+
+                    // If we never hit the planet, we should stop the ray right
+                    // there and return however much scattering has already happened.
+                    if (localDensity > 1)
+                        return 0;
+                    
+                    accumulate += localDensity * dt / _atmosphereRadius;
+                    time += dt;
+                }
+                return accumulate;
             }
 
-            bool OpticalDepth(float3 origin, float3 dir, out float accumulate)
-            {
-                accumulate = 0;
+            float OpticalDepth(float3 origin, float3 dir) {
                 float start, stop;
                 raySphere(_planet, _atmosphereRadius, origin, dir, start, stop);
-                float time = 0;
-                float step = (stop - start) / (float) _inPoints;
-
-                for (int i = 0; i < _inPoints; i++) {
-                    float3 center = origin + dir * (time + step * 0.5);
-                    float density = CalculateDensity(center);
-
-                    // Inside the planet
-                    if (density > 1)
-                        return false;
-
-                    accumulate += density * step;
-                    time += step;
-                }
-                return true;
+                return OpticalDepth(origin, dir, stop);
             }
 
-            float CalculateLight(float3 origin, float3 dir, float start, float stop) {
-                float accumulate = 0;
+            float3 CalculateLight(float3 origin, float3 direction, float start, float stop) {
+                float opticalDepthBackwards = 0;
                 float time = start;
-                float step = (stop - start) / (float) _outPoints;
-                
-                for (int i = 0; i < _outPoints; i++) {
-                    float3 center = origin + dir * (time + step * 0.5);
-                    
-                    float lightIn;
-                    bool overground = OpticalDepth(center, _sunDirection, lightIn);
-                    float lightOut = CalculateDensity(center) * step;
+                float dt = (stop - start) / (_outPoints - 1);
+                float midpointDelta = dt * 0.5;
 
-                    if (overground)
-                    {
-                        float transmittance = exp(-_scatteringCoefficient * (lightIn + lightOut) * _wavelengths);
-                        accumulate += transmittance * step;
-                    }
+                float3 accumulate = 0;
+                for (int i = 0; i < _outPoints; i++) {
+                    float3 midpoint = origin + direction * (time + midpointDelta);
+
+                    float density = CalculateDensity(midpoint);
+                    float localOpticalDepth = density * dt / _atmosphereRadius ;
+                    float sunOpticalDepth = OpticalDepth(midpoint, _sunDirection);
+                    opticalDepthBackwards += localOpticalDepth;
+
+                    if (sunOpticalDepth == 0)
+                        continue;
                     
-                    time += step;
+                    float3 transmittance = exp(1000000 * -_wavelengths * (opticalDepthBackwards + sunOpticalDepth));
+
+                    accumulate += transmittance * localOpticalDepth;
+                    time += dt;
                 }
 
-                float cosAngle = dot(-dir, _sunDirection);
-                float phase = CalculateShape(cosAngle);
-                return _sunIntensity * _scatteringCoefficient * phase * _wavelengths * accumulate;
+                return accumulate * _wavelengths * 100000;
             }
 
-            fixed4 frag(Interpolator vertex) : SV_Target {
-                fixed4 col = tex2D(_MainTex, vertex.uv);
+            float4 frag(Interpolator vertex) : SV_Target {
+                float3 col = tex2D(_MainTex, vertex.uv);
                 float3 origin = _WorldSpaceCameraPos;
                 float3 dir = normalize(vertex.dir);
 
                 float start, stop;
-                if (!raySphere(_planet, _atmosphereRadius, origin, dir, start, stop)) {
-                    return col;
-                }
+                bool hitAtmosphere = raySphere(_planet, _atmosphereRadius, origin, dir, start, stop);
+                if (!hitAtmosphere)
+                    return float4(col, 1);
 
                 float planetStart, planetStop;
-                raySphere(_planet, _elevation, origin, dir, planetStart, planetStop);
+                bool collidesPlanet = raySphere(_planet, _elevation, origin, dir, planetStart, planetStop);
                 
-                float light = CalculateLight(origin, dir, start, min(planetStart, stop));
-                return col * light;
+                float3 light = CalculateLight(origin, dir, start, collidesPlanet ? planetStart : stop);
+                return float4(col + light * _sunIntensity, 1);
             }
             ENDCG
         }

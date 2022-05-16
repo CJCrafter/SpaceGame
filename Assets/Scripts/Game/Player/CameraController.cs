@@ -8,7 +8,8 @@ public class CameraController : MonoBehaviour {
     [Range(0f, 1f)] public float moveSpeed;
     [Range(0f, 1f)] public float rotateSpeed;
     [Min(0f)] public float shakeMultiplier;
-    
+    public float spectateSpeed = 0f;
+
     private Vector3 position;
     private Quaternion rotation;
     private float shakeStart;
@@ -21,6 +22,11 @@ public class CameraController : MonoBehaviour {
     }
     
     public void FixedUpdate() {
+        if (spectateSpeed > 0f) {
+            transform.RotateAround(target.transform.position, Vector3.up, spectateSpeed);
+            return;
+        }
+        
         position = Vector3.Lerp(position, GetTargetLocation(), moveSpeed);
         rotation = Quaternion.Lerp(rotation, GetTargetRotation(), rotateSpeed);
         

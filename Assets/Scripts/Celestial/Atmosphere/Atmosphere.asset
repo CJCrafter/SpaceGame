@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a7745b8fa5b4f54beba7a1b46103ec9, type: 3}
   m_Name: Atmosphere
   m_EditorClassIdentifier: 
-  averageDensity: 0.25
-  wavelengths: {x: 440, y: 550, z: 680}
-  radius: 2.07
+  wavelengths: {x: 680, y: 550, z: 440}
+  radius: 2
   outPoints: 10
   inPoints: 10
-  indexOfRefraction: 1.00023
-  scatteringCoefficient: 0.96
+  indexOfRefraction: 1.0003
+  scatteringStrength: 4
+  intensityMultiplier: 34.92
   material: {fileID: 0}

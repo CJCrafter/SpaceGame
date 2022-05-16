@@ -77,7 +77,7 @@ bool raySphere(float3 sphereCentre, float sphereRadius, float3 rayOrigin, float3
         // Ignore intersections that occur behind the ray
         if (dstToSphereFar >= 0) {
             start = dstToSphereNear;
-            stop = dstToSphereFar - dstToSphereNear;
+            stop = dstToSphereFar; // - dstToSphereNear;
             return true;
         }
     }

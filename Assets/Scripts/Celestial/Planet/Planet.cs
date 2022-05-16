@@ -24,7 +24,7 @@ public class Planet : MonoBehaviour {
     [SerializeField, HideInInspector] 
     private Mesh[] LODS;
     private new Camera camera;
-    public readonly MinMax elevationBounds = new MinMax();
+    [SerializeField, HideInInspector] public MinMax elevationBounds = new MinMax();
     
     public void Init() {
         terrain.Update();
@@ -56,14 +56,15 @@ public class Planet : MonoBehaviour {
     }
 
     public void GenerateMeshes() {
+        elevationBounds.Clear();
         foreach (Mesh mesh in LODS)
             GenerateMesh(mesh);
         
         // When the application not running, we should save on resources
         // to make editing the planet less painful
         if (true || !Application.isPlaying) {
-            Debug.Log("ABI SMELLS " + LODS[LODS.Length - 1].name);
-            GetComponent<MeshFilter>().sharedMesh = LODS[LODS.Length - 1];
+            Debug.Log("ABI SMELLS " + LODS[^1].name);
+            GetComponent<MeshFilter>().sharedMesh = LODS[^1];
             GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
         }
     }
