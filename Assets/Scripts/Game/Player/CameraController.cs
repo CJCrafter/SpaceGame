@@ -15,7 +15,12 @@ public class CameraController : MonoBehaviour {
     private float shakeStart;
     private float shakeDuration;
     private float shakeStrength;
-    
+
+    private void OnValidate() {
+        transform.position = GetTargetLocation();
+        transform.rotation = GetTargetRotation();
+    }
+
     public void Start() {
         transform.position = position = GetTargetLocation();
         transform.rotation = rotation = GetTargetRotation();

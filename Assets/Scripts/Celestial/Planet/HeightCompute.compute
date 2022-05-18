@@ -1,0 +1,66 @@
+#pragma kernel CSMain
+#include "Assets/Shaders/Noise.cginc"
+
+struct NoiseSettings {
+    float3 center;
+    float frequency;
+    float amplitude;
+    uint layers;
+    float attenuation;
+    uint rigid;
+};
+
+struct Crater {
+    float size;
+    float floorHeight;
+    float smoothingFactor;
+};
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+StructuredBuffer<float3> _vertices;
+StructuredBuffer<NoiseSettings> _settings;
+RWStructuredBuffer<float> Result;
+uint _numVertices;
+uint _numSettings;
+
+StructuredBuffer<Crater> _craters;
+uint _numCraters;
+
+
+float CalculateElevation(float3 vertex, NoiseSettings settings) {
+    float noise = 0;
+    float attenuation = 1.0;
+    
+    for (uint i = 0; i < settings.layers; i++) {
+        float local = snoise(vertex * settings.frequency + settings.center);
+        local = (local + 1.0) / 2.0;
+        
+        // 1 - abs(noise) = rigid
+        if (settings.rigid == 1)
+            local = 1 - abs(local);
+        
+        local *= settings.amplitude * attenuation;
+        noise += local;
+        
+        attenuation *= settings.attenuation;
+    }
+
+    return noise;
+} 
+
+[numthreads(512,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    if (id.x >= _numVertices)
+        return;
+    
+    float3 vertex = _vertices[id.x];
+
+    float elevation = 0;
+    for (uint i = 0; i < _numSettings; i++) {
+        float local = CalculateElevation(vertex, _settings[i]);
+        elevation += local; 
+    }
+    
+    Result[id.x] = max(0, elevation);
+}

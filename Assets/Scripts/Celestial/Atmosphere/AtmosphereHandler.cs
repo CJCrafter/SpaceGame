@@ -15,6 +15,7 @@ public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect 
     public float scatteringStrength = 4f;
     [Min(0)] public float intensityMultiplier = 1f;
     
+    [HideInInspector] public Planet planet;
     private bool changes = true;
     private Sun sun;
     [HideInInspector] public Material material;
@@ -23,21 +24,23 @@ public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect 
         changes = true;
     }
 
-    public void UpdateShader(Planet planet) {
+    public void UpdateShader() {
         if (material == null) material = new Material(Shader.Find("Celestial/AtmosphereShader"));
         if (sun == null) sun = FindObjectOfType<Sun>();
+        // todo consider changes
 
         Vector3 vector = sun.transform.position - planet.transform.position;
         material.SetVector("_sunDirection", vector.normalized);
         material.SetVector("_planet", planet.transform.position);
         
         material.SetFloat("_atmosphereRadius", planet.radius * radius);
-        material.SetFloat("_elevation", planet.terrain.CalculateScaledElevation(planet.elevationBounds.min, planet.radius));
+        material.SetFloat("_elevation", planet.terrain.CalculateScaledElevation(planet.elevationBounds.min));
         material.SetInt("_outPoints", outPoints);
         material.SetInt("_inPoints", inPoints);
         material.SetVector("_wavelengths", CalculateBeta(wavelengths));
         material.SetFloat("_sunIntensity", sun.intensity * intensityMultiplier);
         material.SetFloat("_scatteringStrength", scatteringStrength);
+        changes = false;
     }
 
     private Vector3 CalculateBeta(Vector3 wavelengths) {

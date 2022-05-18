@@ -1,7 +1,21 @@
 using UnityEngine;
 
-public class ShaderUtil
-{
+public static class ShaderUtil {
+
+    public static void Dispatch(ComputeShader compute, int kernel, int x, int y = 1, int z = 1) {
+        compute.GetKernelThreadGroupSizes(kernel, out uint dx, out uint dy, out uint dz);
+        int threadX = Mathf.CeilToInt(x / (float) dx);
+        int threadY = Mathf.CeilToInt(y / (float) dy);
+        int threadZ = Mathf.CeilToInt(z / (float) dz);
+        compute.Dispatch(kernel, threadX, threadY, threadZ);
+    }
+    
+    public static void InitBuffer(ref ComputeBuffer buffer, int count, int stride) {
+        if (buffer == null || buffer.count != count || buffer.stride != stride) {
+            buffer?.Release();
+            buffer = new ComputeBuffer(count, stride);
+        }
+    }
 
     public static Texture2D GenerateTextureFromGradient(Gradient gradient, int width) {
         Texture2D texture = null;

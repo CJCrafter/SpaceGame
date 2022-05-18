@@ -3,12 +3,8 @@ using UnityEngine;
 
 public class Planet : MonoBehaviour {
 
-    private const int MIN_DETAIL = 0;
-    private const int MAX_DETAIL = 6;
-    
     // Some general settings
     [Min(0)] public float radius;
-    [Min(0)] public float lodMultiplier; 
     
     // Since a planet has a bunch of settings, we should divide it into more
     // 'digestible' sections (Also good for saving settings between planets
@@ -17,67 +13,60 @@ public class Planet : MonoBehaviour {
     public TerrainHandler terrain;
     public AtmosphereHandler atmosphere;
 
-    // Consider a planet with radius 'r', and a camera with a distance 'd' to
-    // that planet. When d < 10r, there should be a lot of detail on the
-    // planet. As d gets bigger and bigger, the detail on the planet must lower
-    // to save resources. 
-    [SerializeField, HideInInspector] 
-    private Mesh[] LODS;
+    [SerializeField, HideInInspector] private Mesh mesh; 
     private new Camera camera;
     [SerializeField, HideInInspector] public MinMax elevationBounds = new MinMax();
     
     public void Init() {
-        terrain.Update();
+        if (GetComponent<MeshRenderer>() == null) gameObject.AddComponent<MeshRenderer>();
+        if (GetComponent<MeshFilter>() == null) gameObject.AddComponent<MeshFilter>();
+        if (GetComponent<MeshCollider>() == null) gameObject.AddComponent<MeshCollider>();
+        
+        if (mesh == null)
+            GenerateMeshes(true, true);
 
-        if (true || LODS == null || LODS.Length != MAX_DETAIL - MIN_DETAIL || LODS.Length == 0 || LODS[0] == null) {
-            Debug.Log("Regenerating " + gameObject.name + " mesh from: " + LODS);
-            if (gameObject.GetComponent<MeshRenderer>() == null) gameObject.AddComponent<MeshRenderer>();
-            if (gameObject.GetComponent<MeshFilter>() == null) gameObject.AddComponent<MeshFilter>();
-            LODS = new Mesh[MAX_DETAIL - MIN_DETAIL];
-
-            for (int i = 0; i < MAX_DETAIL - MIN_DETAIL; i++) {
-                LODS[i] = Icosphere.Create(MIN_DETAIL + i, 1.0f);
-                LODS[i].name = gameObject.name + " LOD " + (MIN_DETAIL + 1);
-            }
-        }
+        GetComponent<MeshFilter>().sharedMesh = mesh;
+        GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
     }
 
     public void Start() {
         if (atmosphere == null)
             return;
+
+        // The editor also sets these, but let's just make sure that
+        // our handlers know which planet they are used for. 
+        atmosphere.planet = this;
+        terrain.planet = this;
         
-        atmosphere.UpdateShader(this);
+        atmosphere.UpdateShader();
         CameraPost post = FindObjectOfType<CameraPost>();
         post.materials.Add(atmosphere.material);
     }
 
     public void Update() {
-        atmosphere.UpdateShader(this);
+        atmosphere.UpdateShader();
     }
 
-    public void GenerateMeshes() {
+    public void GenerateMeshes(bool recalculateNoise, bool recalculateAll) {
         elevationBounds.Clear();
-        foreach (Mesh mesh in LODS)
-            GenerateMesh(mesh);
-        
-        // When the application not running, we should save on resources
-        // to make editing the planet less painful
-        if (true || !Application.isPlaying) {
-            Debug.Log("ABI SMELLS " + LODS[^1].name);
-            GetComponent<MeshFilter>().sharedMesh = LODS[^1];
-            GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
-        }
+        if (recalculateNoise)
+            terrain.Calculate();
+
+        GenerateMesh(recalculateAll);
     }
 
-    private void GenerateMesh(Mesh mesh) {
+    public void GenerateMesh(bool recalculateAll) {
+        if (mesh == null || recalculateAll)
+            mesh = GetComponent<MeshFilter>().sharedMesh = Icosphere.Create(5, 1);
+        
         var oldVertices = mesh.vertices;
         var vertices = new List<Vector3>();
         var elevations = new float[mesh.vertexCount];
         
         for (int i = 0; i < mesh.vertexCount; i++) {
             oldVertices[i] = oldVertices[i].normalized;
-            float unscaled = terrain.CalculateUnscaledElevation(oldVertices[i]);
-            float elevated = terrain.CalculateScaledElevation(unscaled, radius);
+            float unscaled = terrain.CalculateUnscaledElevation(i);
+            float elevated = terrain.CalculateScaledElevation(unscaled);
 
             elevations[i] = unscaled;
             vertices.Add(oldVertices[i] * elevated);
@@ -96,16 +85,6 @@ public class Planet : MonoBehaviour {
         }
         
         mesh.SetUVs(0, uvs);
-    }
-
-    public int GetCurrentLOD() {
-        if (camera == null)
-            camera = Camera.main;
-        
-        float distance = MathUtil.Distance(camera.transform.position, transform.position);
-        float maxDistance = radius * lodMultiplier;
-        distance = Mathf.Clamp(distance, 0, maxDistance);
-        return Mathf.RoundToInt(MathUtil.Remap(distance, 0, maxDistance, MIN_DETAIL, MAX_DETAIL));
-        
+        mesh.Optimize();
     }
 }

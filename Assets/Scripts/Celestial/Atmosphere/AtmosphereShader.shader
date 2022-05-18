@@ -1,6 +1,5 @@
 ﻿// https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-16-accurate-atmospheric-scattering
-// https://www.desmos.com/calculator/riheoqfknc
-
+// https://www.desmos.com/calculator/hsggyugzkc
 
 Shader "Celestial/AtmosphereShader" {
     Properties {

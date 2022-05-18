@@ -14,6 +14,8 @@ public class PlanetEditor : Editor {
     private Editor biomesEditor;
     private Editor atmosphereEditor;
 
+    private bool all; 
+
     public override void OnInspectorGUI() {
         using (var check = new EditorGUI.ChangeCheckScope()) {
             base.OnInspectorGUI();
@@ -23,6 +25,7 @@ public class PlanetEditor : Editor {
         }
 
         if (GUILayout.Button("Generate Planet")) {
+            all = true;
             UpdateAll();
         }
 
@@ -46,6 +49,8 @@ public class PlanetEditor : Editor {
             }
         }
 
+        planet.terrain.planet = planet;
+        planet.atmosphere.planet = planet; 
         DrawSettingsEditor(planet.terrain, UpdateTerrain, ref collapseTerrain, ref terrainEditor);
         DrawSettingsEditor(planet.biomes, UpdateBiomes, ref collapseBiomes, ref biomesEditor);
         DrawSettingsEditor(planet.atmosphere, UpdateAtmosphere, ref collapseAtmosphere, ref atmosphereEditor);
@@ -68,12 +73,14 @@ public class PlanetEditor : Editor {
     }
 
     private void UpdateAll() {
-        UpdateTerrain();
+        planet.Init();
+        planet.GenerateMeshes(true, all);
+        all = false;
     }
 
     private void UpdateTerrain() {
         planet.Init();
-        planet.GenerateMeshes();
+        planet.GenerateMeshes(true, false);
     }
 
     private void UpdateBiomes() {
