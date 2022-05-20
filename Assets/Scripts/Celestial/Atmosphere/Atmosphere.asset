@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a7745b8fa5b4f54beba7a1b46103ec9, type: 3}
   m_Name: Atmosphere
   m_EditorClassIdentifier: 
-  wavelengths: {x: 680, y: 550, z: 440}
-  radius: 2
-  outPoints: 10
-  inPoints: 10
+  wavelengths: {x: 700, y: 550, z: 440}
+  radius: 1.55
+  outPoints: 20
+  inPoints: 20
   indexOfRefraction: 1.0003
-  scatteringStrength: 4
-  intensityMultiplier: 34.92
+  scatteringStrength: 1
+  intensityMultiplier: 0.34
+  planet: {fileID: 0}
   material: {fileID: 0}

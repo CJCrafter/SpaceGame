@@ -28,7 +28,7 @@ public class CameraController : MonoBehaviour {
     
     public void FixedUpdate() {
         if (spectateSpeed > 0f) {
-            transform.RotateAround(target.transform.position, Vector3.up, spectateSpeed);
+            transform.RotateAround(target.transform.position, Vector3.up, spectateSpeed * Time.fixedDeltaTime);
             return;
         }
         

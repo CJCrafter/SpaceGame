@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor.Timeline;
+using UnityEngine;
 
 [ExecuteAlways]
 [RequireComponent(typeof(LineRenderer))]
@@ -7,11 +8,25 @@ public class ShowOrbit : MonoBehaviour {
     private ForceEntity root;
     private LineRenderer line;
     private Vector3[] _points;
-    private bool _useGL;
+    private bool _thin;
 
     private void Start() {
         root = GetComponent<ForceEntity>();
         line = GetComponent<LineRenderer>();
+    }
+
+    private void OnEnable() {
+        if (line == null || root == null)
+            Start();
+        
+        line.enabled = true;
+    }
+
+    private void OnDisable() {
+        if (line == null || root == null)
+            Start();
+        
+        line.enabled = false;
     }
 
     public Vector3[] points {
@@ -31,19 +46,19 @@ public class ShowOrbit : MonoBehaviour {
 
     public bool escape => !orbit;
 
-    public bool useGL {
-        get => _useGL;
+    public bool thin {
+        get => _thin;
         set {
-            _useGL = value;
+            _thin = value;
             if (line != null)
-                line.enabled = !useGL && enabled;
+                line.enabled = !thin && enabled;
         }
     }
 
     public float sampleTime { get; private set; }
     
-    internal void Render() {
-        if (!enabled || !useGL || points.Length < 2)
+    private void Update() {
+        if (!enabled || !thin || points.Length < 2)
             return;
 
         for (var i = 1; i < points.Length; i++) {

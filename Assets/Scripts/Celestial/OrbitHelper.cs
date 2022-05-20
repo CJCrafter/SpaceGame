@@ -6,7 +6,7 @@ using UnityEngine;
 public class OrbitHelper : MonoBehaviour {
 
     private class EntitySimulation {
-        internal readonly ForceEntity entity;
+        private readonly ForceEntity entity;
         internal GameObject gameObject;
         internal ShowOrbit draw;
         internal Vector3 position;
@@ -22,12 +22,17 @@ public class OrbitHelper : MonoBehaviour {
 
         internal void Update() {
             gameObject = entity.gameObject;
-            draw = gameObject.GetComponent<ShowOrbit>();
             position = entity.transform.position;
             velocity = Application.isPlaying ? entity.body.velocity : entity.initialVelocity;
             mass = entity.mass;
             hasGravity = entity.hasGravity;
             radius = entity.mesh?.radius ?? 5f;
+            
+            draw = gameObject.GetComponent<ShowOrbit>();
+            if (draw == null) {
+                gameObject.AddComponent<ShowOrbit>();
+                draw = gameObject.GetComponent<ShowOrbit>();
+            }
         }
     }
 
@@ -68,7 +73,7 @@ public class OrbitHelper : MonoBehaviour {
         Init();
         relativeCache = null;
         foreach (ShowOrbit orbit in FindObjectsOfType<ShowOrbit>()) {
-            orbit.useGL = !thin;
+            orbit.thin = thin;
         }
 
         ShowOrbits();

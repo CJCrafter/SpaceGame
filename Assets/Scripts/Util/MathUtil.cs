@@ -15,7 +15,7 @@ public class MathUtil {
         float dy = a.y - b.y;
         float dz = a.z - b.z;
 
-        return dx * dx + dy * dy + dx * dz;
+        return dx * dx + dy * dy + dz * dz;
     }
     
     public static float Distance(Vector3 a, Vector3 b) {
@@ -23,7 +23,7 @@ public class MathUtil {
         float dy = a.y - b.y;
         float dz = a.z - b.z;
 
-        return Mathf.Sqrt(dx * dx + dy * dy + dx * dz);
+        return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
     }
     
     public static float Remap(float t, float oldMin, float oldMax, float min, float max) {

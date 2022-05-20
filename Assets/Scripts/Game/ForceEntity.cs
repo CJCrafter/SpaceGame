@@ -74,7 +74,7 @@ public class ForceEntity : MonoBehaviour {
         body.AddForce(buoyancy, ForceMode.Impulse);
         body.AddForce(thrust, ForceMode.Impulse);
         foreach (Vector3 ray in gravity)
-            body.AddForce(ray, ForceMode.Impulse);
+            body.AddForce(ray, ForceMode.VelocityChange);
     }
 
     /**
@@ -145,7 +145,7 @@ public class ForceEntity : MonoBehaviour {
         if (distance < planet.elevationBounds.max * planet.radius * planet.biomes.oceanHeight)
             return 997f; // density of water
 
-        return MathUtil.Remap(distance, 0, outer, 0, 420); // todo
+        return distance / outer * 1.225f;
     }
 
     public Vector3[] CalculateGravity() {
@@ -164,8 +164,7 @@ public class ForceEntity : MonoBehaviour {
             
             between.Normalize();
             between *= force * Time.fixedDeltaTime;
-
-
+            
             // Save the strongest source of gravity to determine which
             // direction is up for the player. 
             if (force >= strongestForce) {
@@ -173,7 +172,7 @@ public class ForceEntity : MonoBehaviour {
                 strongestForce = force;
             }
 
-            temp[i] = between * mass;
+            temp[i] = between;
         }
 
         return temp;

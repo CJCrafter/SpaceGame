@@ -50,6 +50,7 @@ public class PlanetEditor : Editor {
         }
 
         planet.terrain.planet = planet;
+        planet.biomes.planet = planet;
         planet.atmosphere.planet = planet; 
         DrawSettingsEditor(planet.terrain, UpdateTerrain, ref collapseTerrain, ref terrainEditor);
         DrawSettingsEditor(planet.biomes, UpdateBiomes, ref collapseBiomes, ref biomesEditor);
@@ -75,6 +76,8 @@ public class PlanetEditor : Editor {
     private void UpdateAll() {
         planet.Init();
         planet.GenerateMeshes(true, all);
+        planet.biomes.UpdateShader();
+        planet.biomes.GenerateOcean(true);
         all = false;
     }
 
@@ -85,6 +88,7 @@ public class PlanetEditor : Editor {
 
     private void UpdateBiomes() {
         planet.biomes.UpdateShader();
+        planet.biomes.GenerateOcean(false);
     }
 
     private void UpdateAtmosphere() {

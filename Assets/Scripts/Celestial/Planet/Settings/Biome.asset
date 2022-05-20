@@ -41,6 +41,10 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 5
     m_NumAlphaKeys: 2
-  shoreHeight: 0.34
+  shoreHeight: 0.16
   shoreColor: {r: 0.85882354, g: 0.5686275, b: 0.25490198, a: 1}
-  oceanHeight: 0
+  oceanHeight: 1.16
+  oceanColor: {r: 0, g: 0.101960786, b: 1, a: 1}
+  ocean: {fileID: 0}
+  oceanShader: {fileID: 4800000, guid: 3bc52b177cfd4c89bba6839531407e44, type: 3}
+  planet: {fileID: 0}

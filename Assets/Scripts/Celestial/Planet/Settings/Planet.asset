@@ -12,28 +12,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee156d31e711d854ebde75fd391fbb43, type: 3}
   m_Name: Planet
   m_EditorClassIdentifier: 
-  layers:
-  - hide: 0
-    useMask: 0
-    noise:
-      type: 0
-      strength: 0.1
-      roughness: 1
-      center: {x: 0, y: 0, z: 0}
-      min: 0
-      layers: 2
-      baseRoughness: 0.9
-      persistence: 0.51
-      weight: 0
-  - hide: 0
-    useMask: 0
-    noise:
-      type: 1
-      strength: 0.04
-      roughness: 0.91
-      center: {x: 0, y: 0, z: 0}
-      min: 0
-      layers: 8
-      baseRoughness: 2
-      persistence: 0.51
-      weight: 0
+  compute: {fileID: 7200000, guid: d872aee69ce935345aa4e48e0a354d24, type: 3}
+  shape:
+    seed: 0
+    center: {x: 6.54, y: 0, z: 0}
+    frequency: 3.3
+    amplitude: 0.15
+    layers: 5
+    attenuation: 0.5
+    rigid: 0
+  detail:
+    seed: 0
+    center: {x: 0, y: 0, z: 0}
+    frequency: 20
+    amplitude: 0.02
+    layers: 5
+    attenuation: 0.5
+    rigid: 0
+  rigid:
+    seed: 0
+    center: {x: 0, y: 0, z: -11.76}
+    frequency: 5
+    amplitude: 0
+    layers: 5
+    attenuation: 0.522
+    rigid: 1
+  planet: {fileID: 0}

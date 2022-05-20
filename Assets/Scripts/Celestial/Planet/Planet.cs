@@ -4,7 +4,7 @@ using UnityEngine;
 public class Planet : MonoBehaviour {
 
     // Some general settings
-    [Min(0)] public float radius;
+    [Min(1)] public float radius;
     
     // Since a planet has a bunch of settings, we should divide it into more
     // 'digestible' sections (Also good for saving settings between planets
@@ -25,7 +25,6 @@ public class Planet : MonoBehaviour {
         if (mesh == null)
             GenerateMeshes(true, true);
 
-        GetComponent<MeshFilter>().sharedMesh = mesh;
         GetComponent<MeshRenderer>().sharedMaterial = biomes.material;
     }
 
@@ -37,6 +36,9 @@ public class Planet : MonoBehaviour {
         // our handlers know which planet they are used for. 
         atmosphere.planet = this;
         terrain.planet = this;
+        biomes.planet = this;
+        
+        biomes.GenerateOcean(false);
         
         atmosphere.UpdateShader();
         CameraPost post = FindObjectOfType<CameraPost>();
@@ -56,8 +58,11 @@ public class Planet : MonoBehaviour {
     }
 
     public void GenerateMesh(bool recalculateAll) {
-        if (mesh == null || recalculateAll)
-            mesh = GetComponent<MeshFilter>().sharedMesh = Icosphere.Create(5, 1);
+        if (mesh == null || recalculateAll) {
+            mesh = Icosphere.Create(6, 1);
+            GetComponent<MeshFilter>().sharedMesh = mesh;
+            GetComponent<MeshCollider>().sharedMesh = mesh;
+        }
         
         var oldVertices = mesh.vertices;
         var vertices = new List<Vector3>();
@@ -85,6 +90,5 @@ public class Planet : MonoBehaviour {
         }
         
         mesh.SetUVs(0, uvs);
-        mesh.Optimize();
     }
 }

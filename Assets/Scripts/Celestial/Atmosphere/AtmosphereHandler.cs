@@ -32,9 +32,10 @@ public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect 
         Vector3 vector = sun.transform.position - planet.transform.position;
         material.SetVector("_sunDirection", vector.normalized);
         material.SetVector("_planet", planet.transform.position);
-        
+
+        float minRadius = Mathf.Max(planet.terrain.CalculateScaledElevation(planet.elevationBounds.min), planet.biomes.oceanHeight * planet.radius);
         material.SetFloat("_atmosphereRadius", planet.radius * radius);
-        material.SetFloat("_elevation", planet.terrain.CalculateScaledElevation(planet.elevationBounds.min));
+        material.SetFloat("_elevation", minRadius);
         material.SetInt("_outPoints", outPoints);
         material.SetInt("_inPoints", inPoints);
         material.SetVector("_wavelengths", CalculateBeta(wavelengths));

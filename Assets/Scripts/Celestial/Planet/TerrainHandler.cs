@@ -6,8 +6,9 @@ public class TerrainHandler : ScriptableObject {
 
     [Serializable]
     public struct NoiseSettings {
+        public int seed;
         public Vector3 center;
-        [Range(0, 0.1f)] public float frequency;
+        [Range(0, 20f)] public float frequency;
         public float amplitude ;
         public uint layers;
         [Range(0, 1)] public float attenuation;
@@ -38,7 +39,7 @@ public class TerrainHandler : ScriptableObject {
         
         // Do settings buffer stuff
         var settings = new[]{ shape, detail, rigid };
-        ShaderUtil.InitBuffer(ref settingsBuffer, settings.Length, 8 * 4);
+        ShaderUtil.InitBuffer(ref settingsBuffer, settings.Length, 9 * 4);
         settingsBuffer.SetData(settings);
         
         // Do result buffer stuff
