@@ -12,7 +12,7 @@ public class TerrainHandler : ScriptableObject {
         public float amplitude ;
         public uint layers;
         [Range(0, 1)] public float attenuation;
-        [Range(0, 1)] public uint rigid;
+        [Range(0, 10)] public float rigid;
     }
     
     
@@ -29,6 +29,11 @@ public class TerrainHandler : ScriptableObject {
     private float[] heights;
 
     public void Calculate() {
+        if (planet.GetComponent<MeshFilter>().sharedMesh == null) {
+            Debug.LogWarning("Planet mesh has no vertices yet!");
+            return;
+        }
+        
         int count = planet.GetComponent<MeshFilter>().sharedMesh.vertexCount;
         heights = new float[count];
         

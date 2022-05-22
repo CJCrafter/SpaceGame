@@ -8,7 +8,7 @@ struct NoiseSettings {
     float amplitude;
     uint layers;
     float attenuation;
-    uint rigid;
+    float rigidPower;
 };
 
 struct Crater {
@@ -27,7 +27,6 @@ uint _numSettings;
 
 StructuredBuffer<Crater> _craters;
 uint _numCraters;
-
 
 
 float Random(uint seed) {
@@ -56,8 +55,10 @@ float CalculateElevation(float3 vertex, NoiseSettings settings) {
         local = (local + 1.0) / 2.0;
         
         // 1 - abs(noise) = rigid
-        if (settings.rigid == 1)
+        if (settings.rigidPower != 0.0) {
             local = 1 - abs(local);
+            local = pow(local, settings.rigidPower);
+        }
         
         local *= settings.amplitude * attenuation;
         noise += local;

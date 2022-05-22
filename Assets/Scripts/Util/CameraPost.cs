@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,34 +7,24 @@ using UnityEngine;
 public class CameraPost : MonoBehaviour {
 
     public List<Material> materials;
-    public List<ICustomPostEffect> effects;
-
-    public interface ICustomPostEffect {
-
-        public abstract Material GetMaterial();
-    }
 
     private void OnRenderImage(RenderTexture source, RenderTexture dest) {
-        if (materials == null)
-            materials = new List<Material>();
-        if (effects == null)
-            effects = new List<ICustomPostEffect>();
+        RenderTexture currentSource = source;
 
-        if (materials.Any()) {
-            foreach (var mat in materials) {
-                //new AtmosphereSettings().Apply(mat, 2.0f);
-                Graphics.Blit(source, dest, mat);
-            }
+        for (var i = 0; i < materials.Count; i++) {
+            if (materials[i] == null)
+                throw new Exception("Null texture " + i + ": " + materials);
+
+            RenderTexture currentDest = i == materials.Count - 1 ? dest : RenderTexture.GetTemporary(source.descriptor);
+            Graphics.Blit(currentSource, currentDest, materials[i]);
+
+            if (currentSource != source)
+                RenderTexture.ReleaseTemporary(currentSource);
+
+            currentSource = currentDest;
         }
-
-        if (effects.Any()) {
-            foreach (var effect in effects) {
-                Graphics.Blit(source, dest, effect.GetMaterial());
-            }
-        }
-
-        if (!materials.Any() && !effects.Any()) {
+        
+        if (!materials.Any())
             Graphics.Blit(source, dest);
-        }
     }
 }

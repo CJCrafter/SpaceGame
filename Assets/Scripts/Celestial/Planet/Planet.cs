@@ -38,7 +38,8 @@ public class Planet : MonoBehaviour {
         terrain.planet = this;
         biomes.planet = this;
         
-        biomes.GenerateOcean(false);
+        biomes.GenerateOcean();
+        biomes.UpdateShader();
         
         atmosphere.UpdateShader();
         CameraPost post = FindObjectOfType<CameraPost>();
@@ -81,14 +82,5 @@ public class Planet : MonoBehaviour {
         mesh.SetVertices(vertices);
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
-
-        var uvs = new List<Vector2>();
-        var normals = mesh.normals;
-        for (int i = 0; i < mesh.vertexCount; i++) {
-            float angle = Vector3.Angle(oldVertices[i], normals[i]) / 90f;
-            uvs.Add(new Vector2(angle, elevations[i]));
-        }
-        
-        mesh.SetUVs(0, uvs);
     }
 }

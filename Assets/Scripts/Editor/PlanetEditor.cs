@@ -77,7 +77,7 @@ public class PlanetEditor : Editor {
         planet.Init();
         planet.GenerateMeshes(true, all);
         planet.biomes.UpdateShader();
-        planet.biomes.GenerateOcean(true);
+        planet.biomes.GenerateOcean();
         all = false;
     }
 
@@ -88,7 +88,7 @@ public class PlanetEditor : Editor {
 
     private void UpdateBiomes() {
         planet.biomes.UpdateShader();
-        planet.biomes.GenerateOcean(false);
+        planet.biomes.GenerateOcean();
     }
 
     private void UpdateAtmosphere() {

@@ -15,7 +15,7 @@ MonoBehaviour:
   gradient:
     serializedVersion: 2
     key0: {r: 1, g: 0.8411476, b: 0.43921566, a: 1}
-    key1: {r: 1, g: 0.8411476, b: 0.43921566, a: 1}
+    key1: {r: 0.6132076, g: 0.49489197, b: 0.20054583, a: 1}
     key2: {r: 0.44025153, g: 0.78071725, b: 1, a: 0}
     key3: {r: 0.44025153, g: 0.78071725, b: 1, a: 0}
     key4: {r: 0.44025153, g: 0.78071725, b: 1, a: 0}
@@ -41,6 +41,11 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
-  shoreHeight: 44.14
+  shoreHeight: 0
   shoreColor: {r: 0.9529412, g: 0.9411765, b: 0.19607843, a: 1}
   oceanHeight: 0
+  oceanColor: {r: 0, g: 0, b: 1, a: 1}
+  ocean: {fileID: 0}
+  oceanShader: {fileID: 0}
+  planetShader: {fileID: 4800000, guid: ed43536cc137e144f9d35734ab86f067, type: 3}
+  planet: {fileID: 0}

@@ -1,21 +1,24 @@
 ﻿Shader "Custom/OceanShader" {
 	Properties {
 		_color ("Color", Color) = (1,1,1,1)
-		_specular ("Specular", Color) = (1,1,1,1)
 		_occlusion ("Occlusion", Range(0,1)) = 1.0
 		_metallic ("Metallic", Range(0,1)) = 1.0
 		_glossiness ("Smoothness", Range(0,1)) = 0.5
 		_waveHeight ("Wave Height", Range(0,1)) = 1.0
 		_frequency ("Wave Frequency", Float) = 1.0
 		_waveSpeed ("Wave Speed", Float) = 1.0
+		_alpha ("Transparency", Range(0,1)) = 1.0
 	}
 	SubShader {
-		Tags { "RenderType"="Opaque" }
+		//Tags { "RenderType"="Transparent" }
+		Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
+        ZWrite Off
+		Cull Off
+        Blend SrcAlpha OneMinusSrcAlpha
 		
 		CGPROGRAM
-		#pragma surface surf Standard fullforwardshadows Vertex:vert
+		#pragma surface surf Standard fullforwardshadows alpha
 		#pragma target 3.0
-		#pragma enable_d3d11_debug_symbols
 		#include "Assets/Shaders/Noise.cginc"
 		
 
@@ -27,6 +30,7 @@
 		float _occlusion;
 		float _metallic;
 		fixed4 _color;
+		fixed _alpha;
 		float _waveHeight;
 		float _waveSpeed;
 		float _frequency;
@@ -51,7 +55,7 @@
 			o.Occlusion = _occlusion;
 			o.Smoothness = _glossiness;
 			o.Metallic = _metallic;
-			o.Alpha = _color.a;
+			o.Alpha = _alpha;
 		}
 		ENDCG
 	}

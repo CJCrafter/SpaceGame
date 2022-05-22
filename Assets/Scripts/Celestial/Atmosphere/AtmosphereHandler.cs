@@ -2,7 +2,7 @@
 
 [CreateAssetMenu()]
 // https://www.desmos.com/calculator/riheoqfknc
-public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect {
+public class AtmosphereHandler : ScriptableObject {
 
     // Molecular number density of standard atmosphere
     private const float N = 2.504E25f;
@@ -32,14 +32,14 @@ public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect 
         Vector3 vector = sun.transform.position - planet.transform.position;
         material.SetVector("_sunDirection", vector.normalized);
         material.SetVector("_planet", planet.transform.position);
-
+        material.SetFloat("_sunIntensity", sun.intensity * intensityMultiplier / vector.sqrMagnitude);
+        
         float minRadius = Mathf.Max(planet.terrain.CalculateScaledElevation(planet.elevationBounds.min), planet.biomes.oceanHeight * planet.radius);
         material.SetFloat("_atmosphereRadius", planet.radius * radius);
         material.SetFloat("_elevation", minRadius);
         material.SetInt("_outPoints", outPoints);
         material.SetInt("_inPoints", inPoints);
         material.SetVector("_wavelengths", CalculateBeta(wavelengths));
-        material.SetFloat("_sunIntensity", sun.intensity * intensityMultiplier);
         material.SetFloat("_scatteringStrength", scatteringStrength);
         changes = false;
     }
@@ -54,9 +54,5 @@ public class AtmosphereHandler : ScriptableObject, CameraPost.ICustomPostEffect 
         float temp = indexOfRefraction * indexOfRefraction - 1;
         wavelength /= 1e9f; // nano meters 
         return temp * temp * factor / wavelength / wavelength / wavelength / wavelength;
-    }
-
-    public Material GetMaterial() {
-        return material;
     }
 }

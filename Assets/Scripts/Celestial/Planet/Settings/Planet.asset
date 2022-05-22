@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: d872aee69ce935345aa4e48e0a354d24, type: 3}
   shape:
-    seed: 0
+    seed: 3
     center: {x: 6.54, y: 0, z: 0}
-    frequency: 3.3
+    frequency: 1.7
     amplitude: 0.15
     layers: 5
     attenuation: 0.5
@@ -25,16 +25,16 @@ MonoBehaviour:
     seed: 0
     center: {x: 0, y: 0, z: 0}
     frequency: 20
-    amplitude: 0.02
+    amplitude: 0.012
     layers: 5
-    attenuation: 0.5
+    attenuation: 0.34
     rigid: 0
   rigid:
-    seed: 0
-    center: {x: 0, y: 0, z: -11.76}
+    seed: 27
+    center: {x: 0, y: 0, z: -18.22}
     frequency: 5
-    amplitude: 0
+    amplitude: 0.06
     layers: 5
     attenuation: 0.522
-    rigid: 1
+    rigid: 10
   planet: {fileID: 0}
